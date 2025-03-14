@@ -1,5 +1,4 @@
-# This workflow builds and publishes the package to PyPI using cibuildwheel
-name: Build and Publish to PyPI
+name: Build and Test
 
 on:
   workflow_dispatch:
@@ -10,116 +9,58 @@ on:
 
 env:
   PACKAGE_NAME: test_my_binding
-  CIBW_BUILD_VERBOSITY: 1
-  MACOSX_DEPLOYMENT_TARGET: "10.14"
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Conda environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniforge-version: "latest"  # ✅ Fix for macOS failure
-          activate-environment: test_my_binding
-          environment-file: environment.yml
-          python-version: 3.9
-          auto-activate-base: false
-
-      - name: Install additional pip dependencies
-        shell: bash -l {0}
-        run: |
-          conda activate test_my_binding
-          pip install -r requirements-dev.txt
-
-      - name: Install cibuildwheel
-        shell: bash -l {0}
-        run: |
-          conda activate test_my_binding
-          python -m pip install --upgrade pip cibuildwheel
-
-      - name: Build wheels
-        shell: bash -l {0}
-        env:
-          CIBW_BUILD: "cp39-* cp310-* cp311-*"
-          CIBW_SKIP: "*-manylinux_i686 *-musllinux_*"
-          CIBW_TEST_REQUIRES: "pytest numpy"
-          CIBW_TEST_COMMAND: "pytest {package}/tests -v"
-          CIBW_ENVIRONMENT_MACOS: >-
-            MACOSX_DEPLOYMENT_TARGET=10.14
-            CMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-            ARCHFLAGS="-arch arm64 -arch x86_64"
-        run: |
-          conda activate test_my_binding
-          cibuildwheel --output-dir wheelhouse
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          path: wheelhouse/*.whl
-
-  build_sdist:
-    name: Build source distribution
+  build_and_test:
+    name: Build and test on Ubuntu
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Conda environment
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          miniforge-version: "latest"
-          activate-environment: test_my_binding
-          environment-file: environment.yml
-          python-version: 3.9
-          auto-activate-base: false
+          python-version: '3.9'
 
-      - name: Install additional pip dependencies
-        shell: bash -l {0}
+      - name: Install system dependencies
         run: |
-          conda activate test_my_binding
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build pip-tools wheel setuptools
+          pip install cibuildwheel==2.16.2
           pip install -r requirements-dev.txt
 
       - name: Build sdist
-        shell: bash -l {0}
-        run: |
-          conda activate test_my_binding
-          python -m build --sdist --outdir dist/
+        run: python -m build --sdist --outdir dist/
 
-      - name: Upload sdist
+      - name: Build wheels
+        env:
+          CIBW_BUILD: "cp39-manylinux_x86_64"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ENVIRONMENT: >
+            SETUPTOOLS_USE_DISTUTILS=stdlib
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+          CIBW_BEFORE_BUILD: >
+            pip install -r requirements-dev.txt
+          CIBW_TEST_REQUIRES: "pytest>=7.0.0 pytest-cov>=4.0.0 numpy compas"
+          CIBW_TEST_COMMAND: >
+            python -m pip install {wheel} &&
+            python -m pytest {package}/tests -v --cov={package}
+          CIBW_BUILD_VERBOSITY: 1
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse .
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          path: dist/*.tar.gz
-
-  publish:
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-
-      - name: Move artifacts
-        run: |
-          mkdir -p dist_final
-          find dist -type f -exec mv {} dist_final/ \;
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: dist_final/
-          skip-existing: true
+          name: distributions
+          path: |
+            dist/*.tar.gz
+            wheelhouse/*.whl
