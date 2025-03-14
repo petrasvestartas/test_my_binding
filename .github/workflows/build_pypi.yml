@@ -3,11 +3,14 @@ name: Build and Publish to PyPI
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
 
 env:
   PACKAGE_NAME: test_my_binding
   CIBW_BUILD_VERBOSITY: 1
-  # Set minimum macOS version for C++17 support
   MACOSX_DEPLOYMENT_TARGET: "10.14"
 
 jobs:
@@ -24,95 +27,45 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Conda environment
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: '3.9'
+          activate-environment: test_my_binding
+          environment-file: environment.yml
+          python-version: 3.9
+          auto-activate-base: false
 
-      # Install OS-specific build requirements
-      - name: Install build requirements (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Install additional pip dependencies
+        shell: bash -l {0}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
+          conda activate test_my_binding
+          pip install -r requirements-dev.txt
 
-      - name: Install build requirements (macOS)
-        if: runner.os == 'macOS'
+      - name: Install cibuildwheel
+        shell: bash -l {0}
         run: |
-          xcode-select --install || true
+          conda activate test_my_binding
+          python -m pip install --upgrade pip cibuildwheel
 
-      - name: Install build requirements (Windows)
-        if: runner.os == 'Windows'
-        uses: microsoft/setup-msbuild@v1.3.1
-        with:
-          vs-version: '[17.0,18.0)'
-          msbuild-architecture: x64
-
-      - name: Setup Visual Studio Environment (Windows)
-        if: runner.os == 'Windows'
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: x64
-
-      # Set package name for testing
-      - name: Set test package name (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          sed -i.bak "s/name = \"test_my_binding\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
-
-      - name: Set test package name (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          (Get-Content pyproject.toml) -replace 'name = "test_my_binding"', 'name = "${{ env.PACKAGE_NAME }}"' | Set-Content pyproject.toml
-
-      # Install cibuildwheel directly on Windows
-      - name: Install cibuildwheel (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          python -m pip install --upgrade pip
-          pip install "cibuildwheel==2.16.2"
-
-      # Build wheels on Windows directly
-      - name: Build wheels (Windows)
-        if: runner.os == 'Windows'
-        env:
-          CIBW_BUILD: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64"
-          CIBW_REPAIR_WHEEL_COMMAND: >
-            python -m pip install --upgrade pip &&
-            pip install numpy compas pytest &&
-            pip install {wheel} &&
-            cd {package_dir} &&
-            pytest tests -v
-          SETUPTOOLS_USE_DISTUTILS: stdlib
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
-          CMAKE_GENERATOR_PLATFORM: x64
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse .
-
-      # Use cibuildwheel action for non-Windows platforms
-      - name: Build wheels (Unix)
-        if: runner.os != 'Windows'
-        uses: pypa/cibuildwheel@v2.16.2
+      - name: Build wheels
+        shell: bash -l {0}
         env:
           CIBW_BUILD: "cp39-* cp310-* cp311-*"
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_*"
-          CIBW_REPAIR_WHEEL_COMMAND: >
-            python -m pip install --upgrade pip &&
-            pip install numpy compas pytest &&
-            pip install {wheel} &&
-            cd {package_dir} &&
-            pytest tests -v
-          CIBW_TEST_SKIP: "cp38-macosx_*:arm64"
+          CIBW_TEST_REQUIRES: "pytest numpy"
+          CIBW_TEST_COMMAND: "pytest {package}/tests -v"
           CIBW_ENVIRONMENT_MACOS: >-
             MACOSX_DEPLOYMENT_TARGET=10.14
             CMAKE_OSX_ARCHITECTURES="arm64;x86_64"
             ARCHFLAGS="-arch arm64 -arch x86_64"
+        run: |
+          conda activate test_my_binding
+          cibuildwheel --output-dir wheelhouse
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          path: ./wheelhouse/*.whl
+          path: wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
@@ -122,29 +75,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Conda environment
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: '3.9'
+          activate-environment: test_my_binding
+          environment-file: environment.yml
+          python-version: 3.9
+          auto-activate-base: false
 
-      - name: Install build dependencies
+      - name: Install additional pip dependencies
+        shell: bash -l {0}
         run: |
-          python -m pip install --upgrade pip
-          pip install build
-
-      - name: Set test package name (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          sed -i.bak "s/name = \"test_my_binding\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
-
-      - name: Set test package name (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          (Get-Content pyproject.toml) -replace 'name = "test_my_binding"', 'name = "${{ env.PACKAGE_NAME }}"' | Set-Content pyproject.toml
+          conda activate test_my_binding
+          pip install -r requirements-dev.txt
 
       - name: Build sdist
-        run: python -m build --sdist --outdir dist/
+        shell: bash -l {0}
+        run: |
+          conda activate test_my_binding
+          python -m build --sdist --outdir dist/
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
@@ -154,7 +103,7 @@ jobs:
   publish:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/download-artifact@v4
         with:
