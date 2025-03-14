@@ -55,9 +55,16 @@ jobs:
           arch: x64
 
       # Set package name for testing
-      - name: Set test package name
+      - name: Set test package name (Unix)
+        if: runner.os != 'Windows'
         run: |
           sed -i.bak "s/name = \"compas_cgal\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
+
+      - name: Set test package name (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          (Get-Content pyproject.toml) -replace 'name = "compas_cgal"', 'name = "${{ env.PACKAGE_NAME }}"' | Set-Content pyproject.toml
 
       # Build wheels
       - name: Build wheels
@@ -67,8 +74,10 @@ jobs:
           CIBW_BUILD: "cp39-* cp310-* cp311-*"
           # Skip 32-bit builds
           CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_*"
-          # Test import after build
-          CIBW_TEST_REQUIRES: pytest
+          # Test setup
+          CIBW_BEFORE_TEST: >
+            python -m pip install --upgrade pip &&
+            pip install numpy compas pytest
           CIBW_TEST_COMMAND: "pytest {project}/tests -v"
           # Don't test Python 3.8 wheels on macOS/arm64 (as per pyproject.toml)
           CIBW_TEST_SKIP: "cp38-macosx_*:arm64"
@@ -106,9 +115,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      - name: Set test package name
+      - name: Set test package name (Unix)
+        if: runner.os != 'Windows'
         run: |
           sed -i.bak "s/name = \"compas_cgal\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
+
+      - name: Set test package name (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          (Get-Content pyproject.toml) -replace 'name = "compas_cgal"', 'name = "${{ env.PACKAGE_NAME }}"' | Set-Content pyproject.toml
 
       - name: Build sdist
         run: python -m build --sdist --outdir dist/
