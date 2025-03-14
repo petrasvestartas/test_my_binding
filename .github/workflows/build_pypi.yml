@@ -5,62 +5,85 @@ on:
   push:
     branches:
       - main
+    tags:
+      - v*
   pull_request:
 
-env:
-  PACKAGE_NAME: test_my_binding
-
 jobs:
-  build_and_test:
-    name: Build and test on Ubuntu
-    runs-on: ubuntu-latest
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["cp39", "cp310", "cp311"]
+        exclude:
+          - os: macos-latest
+            python: "cp39"  # Skip Python 3.9 on macOS
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build pip-tools wheel setuptools
-          pip install cibuildwheel==2.16.2
-          pip install -r requirements-dev.txt
-
-      - name: Build sdist
-        run: python -m build --sdist --outdir dist/
-
       - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.2
         env:
-          CIBW_BUILD: "cp39-manylinux_x86_64"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_BUILD: ${{ matrix.python }}-*
+          CIBW_ARCHS_MACOS: x86_64 arm64
+          CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
           CIBW_ENVIRONMENT: >
-            SETUPTOOLS_USE_DISTUTILS=stdlib
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+            SETUPTOOLS_USE_DISTUTILS=stdlib
           CIBW_BEFORE_BUILD: >
             pip install -r requirements-dev.txt
           CIBW_TEST_REQUIRES: "pytest>=7.0.0 pytest-cov>=4.0.0 numpy compas"
           CIBW_TEST_COMMAND: >
-            python -m pip install {wheel} &&
             python -m pytest {package}/tests -v --cov={package}
-          CIBW_BUILD_VERBOSITY: 1
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse .
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: distributions
-          path: |
-            dist/*.tar.gz
-            wheelhouse/*.whl
+          name: wheels-${{ matrix.os }}-${{ matrix.python }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build SDist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/test_my_binding
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
