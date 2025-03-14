@@ -26,33 +26,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # For running cibuildwheel
+          python-version: '3.9'  # Required Python version for building and testing
 
       - name: Install cibuildwheel
         run: |
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.3.0
-
-      - name: Install build dependencies
-        run: |
-          pip install numpy compas pytest>=7.0.0 pytest-cov>=4.0.0
-          pip install nanobind>=1.3.2 scikit-build-core[pyproject]>=0.10
+          pip install cibuildwheel==2.16.2
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp39-*"  # Build for Python 3.9 as per requirements
+          CIBW_BUILD: "cp39-*"  # Build for Python 3.9
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For better C++ support
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
           CIBW_BEFORE_ALL_LINUX: |
-            yum install -y python-devel cmake
+            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+            yum clean all
+            yum makecache
+            yum update -y
+            yum install -y python-devel cmake gcc-c++ make
           CIBW_BEFORE_ALL_WINDOWS: |
             pip install delvewheel
           CIBW_BEFORE_BUILD: |
-            pip install numpy compas pytest>=7.0.0 pytest-cov>=4.0.0
-            pip install nanobind>=1.3.2 scikit-build-core[pyproject]>=0.10
-          CIBW_TEST_REQUIRES: "pytest>=7.0.0 pytest-cov>=4.0.0 numpy compas"
+            python -m pip install --upgrade pip
+            pip install numpy compas pytest build line_profiler
+          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
-            pip install {wheel}
+            pip install --force-reinstall {wheel}
             cd {package}
             python -m pytest tests -v
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
@@ -83,13 +83,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # Match cibuildwheel Python version
+          python-version: '3.9'  # Match wheel building Python version
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build numpy compas pytest>=7.0.0 pytest-cov>=4.0.0
-          pip install nanobind>=1.3.2 scikit-build-core[pyproject]>=0.10
+          pip install numpy compas pytest build line_profiler
 
       - name: Build SDist
         run: python -m build --sdist
