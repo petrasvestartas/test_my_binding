@@ -33,6 +33,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install cibuildwheel==2.23.0
 
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"  # Build for Python 3.9
@@ -50,6 +55,7 @@ jobs:
           CIBW_BEFORE_BUILD: |
             python -m pip install --upgrade pip
             pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
           CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
             pip install --force-reinstall {wheel}
@@ -84,6 +90,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'  # Match wheel building Python version
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
 
       - name: Install dependencies
         run: |
