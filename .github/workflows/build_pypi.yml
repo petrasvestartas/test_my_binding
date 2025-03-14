@@ -1,0 +1,124 @@
+# This workflow builds and publishes the package to PyPI using cibuildwheel
+name: Build and Publish to PyPI
+
+on:
+  workflow_dispatch:
+
+env:
+  PACKAGE_NAME: test_my_binding
+  CIBW_BUILD_VERBOSITY: 1
+  # Set minimum macOS version for C++17 support
+  MACOSX_DEPLOYMENT_TARGET: "10.14"
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # Install OS-specific build requirements
+      - name: Install build requirements (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Install build requirements (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          xcode-select --install || true
+
+      - name: Install build requirements (Windows)
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v1
+        with:
+          vs-version: '2019'
+
+      # Set package name for testing
+      - name: Set test package name
+        run: |
+          sed -i.bak "s/name = \"compas_cgal\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
+
+      # Build wheels
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.2
+        env:
+          # Build for Python 3.9, 3.10, 3.11
+          CIBW_BUILD: "cp39-* cp310-* cp311-*"
+          # Skip 32-bit builds
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_*"
+          # Test import after build
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: "pytest {project}/tests"
+          # Don't test Python 3.8 wheels on macOS/arm64 (as per pyproject.toml)
+          CIBW_TEST_SKIP: "cp38-macosx_*:arm64"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Set test package name
+        run: |
+          sed -i.bak "s/name = \"compas_cgal\"/name = \"${{ env.PACKAGE_NAME }}\"/" pyproject.toml
+
+      - name: Build sdist
+        run: python -m build --sdist --outdir dist/
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  publish:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Move artifacts
+        run: |
+          mkdir -p dist_final
+          find dist -type f -exec mv {} dist_final/ \;
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist_final/
+          skip-existing: true
