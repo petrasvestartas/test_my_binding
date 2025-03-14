@@ -1,5 +1,5 @@
 import numpy as np
-from compas_cgal.compas_cgal_ext import scale_matrix, create_matrix, add
+from test_my_binding.test_my_binding_ext import scale_matrix, create_matrix, add
 
 
 def test_add_binding():

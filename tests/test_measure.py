@@ -3,7 +3,7 @@
 import pytest
 from compas.geometry import Box
 from compas.datastructures import Mesh
-from compas_cgal.measure import mesh_area, mesh_volume, mesh_centroid
+from test_my_binding.measure import mesh_area, mesh_volume, mesh_centroid
 
 
 def test_area():

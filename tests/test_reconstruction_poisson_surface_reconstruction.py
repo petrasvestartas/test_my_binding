@@ -5,7 +5,7 @@ from compas.datastructures import Mesh
 from compas.geometry import Pointcloud
 from compas.geometry import Rotation
 from compas.geometry import Scale
-from compas_cgal.reconstruction import poisson_surface_reconstruction
+from test_my_binding.reconstruction import poisson_surface_reconstruction
 
 
 def test_reconstruction_poisson_surface_reconstruction():

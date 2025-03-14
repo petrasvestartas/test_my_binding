@@ -1,5 +1,5 @@
 from compas.geometry import Box, Plane, Point, Vector, Polyline
-from compas_cgal.slicer import slice_mesh
+from test_my_binding.slicer import slice_mesh
 
 
 def test_mesh_slice():

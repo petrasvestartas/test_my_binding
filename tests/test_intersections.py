@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 
 from compas.geometry import Box, Sphere
-from compas_cgal.intersections import intersection_mesh_mesh
+from test_my_binding.intersections import intersection_mesh_mesh
 
-from compas_cgal.compas_cgal_ext import VectorRowMatrixXd
+from test_my_binding.test_my_binding_ext import VectorRowMatrixXd
 
 
 @pytest.fixture

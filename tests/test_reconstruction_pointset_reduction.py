@@ -1,5 +1,5 @@
 import numpy as np
-from compas_cgal.reconstruction import pointset_reduction
+from test_my_binding.reconstruction import pointset_reduction
 
 
 def test_pointset_reduction():

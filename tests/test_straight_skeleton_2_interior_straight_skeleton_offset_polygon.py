@@ -1,5 +1,5 @@
 from compas.geometry import Polygon
-from compas_cgal.straight_skeleton_2 import offset_polygon
+from test_my_binding.straight_skeleton_2 import offset_polygon
 
 
 def test_offset_polygon():

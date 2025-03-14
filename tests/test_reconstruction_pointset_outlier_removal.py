@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from compas.geometry import Pointcloud
-from compas_cgal.reconstruction import pointset_outlier_removal
+from test_my_binding.reconstruction import pointset_outlier_removal
 import numpy as np
 from line_profiler import profile
 

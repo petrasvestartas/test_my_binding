@@ -1,4 +1,4 @@
-from compas_cgal.straight_skeleton_2 import interior_straight_skeleton
+from test_my_binding.straight_skeleton_2 import interior_straight_skeleton
 
 
 def test_interior_straight_skeleton():

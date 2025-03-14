@@ -1,9 +1,9 @@
 import numpy as np
 
 from compas.geometry import Box
-from compas_cgal.subdivision import mesh_subdivide_catmull_clark
-from compas_cgal.subdivision import mesh_subdivide_loop
-from compas_cgal.subdivision import mesh_subdivide_sqrt3
+from test_my_binding.subdivision import mesh_subdivide_catmull_clark
+from test_my_binding.subdivision import mesh_subdivide_loop
+from test_my_binding.subdivision import mesh_subdivide_sqrt3
 
 
 def test_subdivision_methods():

@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from compas.datastructures import Mesh
-from compas_cgal.meshing import mesh_remesh
+from test_my_binding.meshing import mesh_remesh
 
 
 @pytest.fixture

@@ -180,31 +180,31 @@ foreach(source ${CPP_SOURCES})
 endforeach()
 
 nanobind_add_module(
-  compas_cgal_ext
+  test_my_binding_ext
   STABLE_ABI
   NB_STATIC
   ${CPP_SOURCES}
 )
 
 # Set include directories for the extension
-target_include_directories(compas_cgal_ext PRIVATE 
+target_include_directories(test_my_binding_ext PRIVATE 
     ${CGAL_INCLUDE_DIR}
     ${BOOST_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
 )
 
 # Make sure external dependencies are downloaded before building the extension
-add_dependencies(compas_cgal_ext external_downloads)
+add_dependencies(test_my_binding_ext external_downloads)
 
 # Enhanced PCH configuration
 set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_PCH_WARN_INVALID ON)
 
 # Configure PCH for the extension
-target_precompile_headers(compas_cgal_ext 
+target_precompile_headers(test_my_binding_ext 
     PRIVATE 
     src/compas.h
 )
 
 # Install directive for scikit-build-core
-install(TARGETS compas_cgal_ext LIBRARY DESTINATION compas_cgal)
+install(TARGETS test_my_binding_ext LIBRARY DESTINATION test_my_binding)

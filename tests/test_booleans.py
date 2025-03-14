@@ -4,7 +4,7 @@ import numpy as np
 from compas.geometry import Box, Sphere
 from compas.datastructures import Mesh
 
-from compas_cgal.booleans import (
+from test_my_binding.booleans import (
     boolean_union_mesh_mesh,
     boolean_difference_mesh_mesh,
     boolean_intersection_mesh_mesh,

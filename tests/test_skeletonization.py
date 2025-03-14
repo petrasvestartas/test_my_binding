@@ -1,5 +1,5 @@
 from compas.geometry import Box
-from compas_cgal.skeletonization import mesh_skeleton
+from test_my_binding.skeletonization import mesh_skeleton
 
 
 def test_mesh_skeleton():

@@ -1,5 +1,5 @@
 import numpy as np
-from compas_cgal.reconstruction import pointset_smoothing
+from test_my_binding.reconstruction import pointset_smoothing
 
 
 def test_pointset_smoothing():

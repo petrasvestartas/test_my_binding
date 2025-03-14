@@ -2,8 +2,8 @@ from pathlib import Path
 
 from compas.geometry import Pointcloud
 from compas.geometry import Line
-from compas_cgal.reconstruction import pointset_normal_estimation
-from compas_cgal.reconstruction import pointset_reduction
+from test_my_binding.reconstruction import pointset_normal_estimation
+from test_my_binding.reconstruction import pointset_reduction
 
 
 def reconstruction_pointset_normal_estimation():

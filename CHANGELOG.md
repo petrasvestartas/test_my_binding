@@ -33,14 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added recipe hasher.
 * Added `scip` to dev install instructions in README.md
-* Added `compas_cgal.straight_skeleton_2.offset_polygon_with_holes`.
+* Added `test_my_binding.straight_skeleton_2.offset_polygon_with_holes`.
 
 ### Changed
 
-* Changed name of `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton` to `interior_straight_skeleton`
-* Changed name of `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton_with_holes` to `interior_straight_skeleton_with_holes`
-* Changed name of `compas_cgal.straight_skeleton_2.create_offset_polygons_2` to `offset_polygon`
-* Changed name of `compas_cgal.straight_skeleton_2.create_weighted_offset_polygons_2` to `weighted_offset_polygon`
+* Changed name of `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton` to `interior_straight_skeleton`
+* Changed name of `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton_with_holes` to `interior_straight_skeleton_with_holes`
+* Changed name of `test_my_binding.straight_skeleton_2.create_offset_polygons_2` to `offset_polygon`
+* Changed name of `test_my_binding.straight_skeleton_2.create_weighted_offset_polygons_2` to `weighted_offset_polygon`
 * Changed version to `scip=9.0.0` for windows.
 
 ### Removed
@@ -53,8 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Changed the return values of `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton` and `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton_with_holes`.
-* Changed the return values of `compas_cgal.create_interior_straight_skeleton`.
+* Changed the return values of `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton` and `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton_with_holes`.
+* Changed the return values of `test_my_binding.create_interior_straight_skeleton`.
 
 ### Removed
 
@@ -62,12 +62,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton`.
-* Added `compas_cgal.straight_skeleton_2.create_interior_straight_skeleton_with_holes`.
-* Added `compas_cgal.straight_skeleton_2.create_offset_polygons_2_inner`.
-* Added `compas_cgal.straight_skeleton_2.create_offset_polygons_2_outer`.
-* Added `compas_cgal.straight_skeleton_2.create_weighted_offset_polygons_2_inner`.
-* Added `compas_cgal.straight_skeleton_2.create_weighted_offset_polygons_2_outer`.
+* Added `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton`.
+* Added `test_my_binding.straight_skeleton_2.create_interior_straight_skeleton_with_holes`.
+* Added `test_my_binding.straight_skeleton_2.create_offset_polygons_2_inner`.
+* Added `test_my_binding.straight_skeleton_2.create_offset_polygons_2_outer`.
+* Added `test_my_binding.straight_skeleton_2.create_weighted_offset_polygons_2_inner`.
+* Added `test_my_binding.straight_skeleton_2.create_weighted_offset_polygons_2_outer`.
 
 ### Changed
 
@@ -77,16 +77,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added `compas_cgal.reconstruction.poission_surface_reconstruction`.
-* Added `compas_cgal.reconstruction.pointset_outlier_removal`.
-* Added `compas_cgal.reconstruction.pointset_reduction`.
-* Added `compas_cgal.reconstruction.pointset_smoothing`.
-* Added `compas_cgal.reconstruction.pointset_normal_estimation`.
-* Added `compas_cgal.skeletonization.mesh_skeleton`.
-* Added `compas_cgal.subdivision.mesh_subdivision_catmull_clark`.
-* Added `compas_cgal.subdivision.mesh_subdivision_loop`.
-* Added `compas_cgal.subdivision.mesh_subdivision_sqrt3`.
-* Added `compas_cgal.triangulation.refined_delaunay_mesh`.
+* Added `test_my_binding.reconstruction.poission_surface_reconstruction`.
+* Added `test_my_binding.reconstruction.pointset_outlier_removal`.
+* Added `test_my_binding.reconstruction.pointset_reduction`.
+* Added `test_my_binding.reconstruction.pointset_smoothing`.
+* Added `test_my_binding.reconstruction.pointset_normal_estimation`.
+* Added `test_my_binding.skeletonization.mesh_skeleton`.
+* Added `test_my_binding.subdivision.mesh_subdivision_catmull_clark`.
+* Added `test_my_binding.subdivision.mesh_subdivision_loop`.
+* Added `test_my_binding.subdivision.mesh_subdivision_sqrt3`.
+* Added `test_my_binding.triangulation.refined_delaunay_mesh`.
 
 ### Changed
 
@@ -100,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Support to python 3.10.
 * Added Changelog check in PRs.
-* Exposing mesh `compas_cgal.booleans.split` function.
+* Exposing mesh `test_my_binding.booleans.split` function.
 
 ### Changed
 
@@ -114,8 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added type annotations.
 * Added dimension checks to trimesh setters.
-* Added `compas_cgal.measure.volume`.
-* Added `compas_cgal.subdivision.catmull_clark`.
+* Added `test_my_binding.measure.volume`.
+* Added `test_my_binding.subdivision.catmull_clark`.
 
 ### Changed
 
@@ -125,15 +125,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added `compas_cgal.booleans.boolean_union`.
-* Added `compas_cgal.booleans.boolean_difference`.
-* Added `compas_cgal.booleans.boolean_intersection`.
-* Added `compas_cgal.intersections.intersection_mesh_mesh`.
-* Added `compas_cgal.meshing.remesh`.
-* Added `compas_cgal.slicer.slice_mesh`.
-* Added `compas_cgal.triangulation.delaunay_triangulation`.
-* Added `compas_cgal.triangulation.constrained_delaunay_triangulation`.
-* Added `compas_cgal.triangulation.conforming_delaunay_triangulation`.
+* Added `test_my_binding.booleans.boolean_union`.
+* Added `test_my_binding.booleans.boolean_difference`.
+* Added `test_my_binding.booleans.boolean_intersection`.
+* Added `test_my_binding.intersections.intersection_mesh_mesh`.
+* Added `test_my_binding.meshing.remesh`.
+* Added `test_my_binding.slicer.slice_mesh`.
+* Added `test_my_binding.triangulation.delaunay_triangulation`.
+* Added `test_my_binding.triangulation.constrained_delaunay_triangulation`.
+* Added `test_my_binding.triangulation.conforming_delaunay_triangulation`.
 
 ### Changed
 

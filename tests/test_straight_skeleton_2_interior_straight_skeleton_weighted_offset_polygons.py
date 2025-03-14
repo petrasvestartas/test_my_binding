@@ -1,4 +1,4 @@
-from compas_cgal.straight_skeleton_2 import weighted_offset_polygon
+from test_my_binding.straight_skeleton_2 import weighted_offset_polygon
 
 
 def test_weighted_offset_polygon():

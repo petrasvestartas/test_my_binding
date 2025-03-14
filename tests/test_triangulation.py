@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from compas.geometry import Polygon
 from compas.geometry import Translation
-from compas_cgal.triangulation import delaunay_triangulation
-from compas_cgal.triangulation import conforming_delaunay_triangulation
-from compas_cgal.triangulation import refined_delaunay_mesh
+from test_my_binding.triangulation import delaunay_triangulation
+from test_my_binding.triangulation import conforming_delaunay_triangulation
+from test_my_binding.triangulation import refined_delaunay_mesh
 
 
 @pytest.fixture

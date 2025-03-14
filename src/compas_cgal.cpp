@@ -20,7 +20,7 @@ void init_straight_skeleton_2(nb::module_ &);
  * @details Initializes the Python module by defining functions and their bindings.
  *          Each function is exposed to Python with appropriate documentation.
  */
-NB_MODULE(compas_cgal_ext, m) {
+NB_MODULE(test_my_binding_ext, m) {
     m.doc() = "CGAL via Nanobind says hello to COMPAS!";
     
     m.def("add", 
