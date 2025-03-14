@@ -30,6 +30,7 @@ jobs:
       - name: Set up Conda environment
         uses: conda-incubator/setup-miniconda@v2
         with:
+          miniforge-version: "latest"  # ✅ Fix for macOS failure
           activate-environment: test_my_binding
           environment-file: environment.yml
           python-version: 3.9
@@ -78,6 +79,7 @@ jobs:
       - name: Set up Conda environment
         uses: conda-incubator/setup-miniconda@v2
         with:
+          miniforge-version: "latest"
           activate-environment: test_my_binding
           environment-file: environment.yml
           python-version: 3.9
