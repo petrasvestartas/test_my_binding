@@ -4,16 +4,24 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.1"
+version = "1.0.3"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "tom van mele", email = "tom.v.mele@gmail.com" },
     { name = "Petras Vestartas", email = "petrasvestartas@gmail.com" },
 ]
 classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Development Status :: 4 - Beta",
+]
+
+dependencies = [
+    "numpy",
+    "compas",
 ]
 
 [project.urls]
@@ -50,45 +58,41 @@ doctest_optionflags = [
 ]
 
 [tool.scikit-build]
-# Protect the configuration against future changes in scikit-build-core
 minimum-version = "build-system.requires"
-
-# Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
-
-# Build stable ABI wheels for CPython 3.12+
-wheel.py-api = "cp312"
-
-# Configure CMake
+wheel.py-api = "cp39"
 cmake.version = ">=3.15"
 cmake.build-type = "Release"
-
-# Set CMake args for verbose output and architecture
-cmake.args = [
-    "-DCMAKE_VERBOSE_MAKEFILE=ON",
-    "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
-]
 
 [tool.scikit-build.cmake.define]
 CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 
 [tool.cibuildwheel]
-# Necessary to see build output from the actual compilation
-build-verbosity = 1
+build-verbosity = 3
+build = ["cp39-manylinux_x86_64"]  # Only build Python 3.9 manylinux x86_64 wheels
+test-command = """
+pip install numpy compas pytest build &&  # Install test dependencies first
+pip install {wheel} &&                   # Install the wheel
+cd {project} &&                         # Change to package directory
+python -m pytest tests/                 # Run tests
+"""
+build-frontend = "pip"
+manylinux-x86_64-image = "manylinux2014"
+skip = ["*-manylinux_i686", "*-musllinux_*"]  # Skip i686 and musllinux builds
 
-# Run pytest to ensure that the package was correctly built
-test-command = "pytest {project}/tests"
-test-requires = "pytest"
-
-# Don't test Python 3.8 wheels on macOS/arm64
-test-skip="cp38-macosx_*:arm64"
-
-# Needed for full C++17 support
-[tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.14"
+[tool.cibuildwheel.linux]
+before-build = [
+    "rm -rf /project/build",  # Clean build directory
+    "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*",  # Fix repo URLs
+    "sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*",
+    "yum install -y epel-release",  # Add EPEL for OpenBLAS
+    "yum install -y openblas-devel"  # Install OpenBLAS for numpy
+]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+environment.PATH = "/opt/rh/devtoolset-9/root/usr/bin:$PATH"  # Use manylinux's built-in C++ compiler
 
 [tool.bumpversion]
-current_version = "1.0.1"
+current_version = "1.0.3"
 message = "Bump version to {new_version}"
 commit = true
 tag = true
@@ -103,9 +107,6 @@ filename = "CHANGELOG.md"
 search = "Unreleased"
 replace = "[{new_version}] {now:%Y-%m-%d}"
 
-# ============================================================================
-# replace setup.cfg
-# ============================================================================
 [tool.black]
 line-length = 179
 
