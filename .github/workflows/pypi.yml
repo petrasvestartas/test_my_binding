@@ -38,7 +38,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # Updated to use Python 3.11
+          python-version: '3.11'
 
       - name: Install cibuildwheel
         run: |
@@ -102,7 +102,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # Also use Python 3.11 here for consistency
+          python-version: '3.11'
 
       - name: Clean build artifacts
         run: |
@@ -147,13 +147,12 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  build_manylinux:
+  manylinux:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     name: Build wheels on manylinux
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux2014_x86_64
-      options: --user root
     steps:
       - uses: actions/checkout@v4
         with:
@@ -162,7 +161,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # Use Python 3.11
+          python-version: '3.11'
 
       - name: Install cibuildwheel
         run: |
@@ -174,7 +173,7 @@ jobs:
           rm -rf build dist wheelhouse *.egg-info
         shell: bash
 
-      - name: Build wheels
+      - name: Build wheels for manylinux
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"

@@ -23,7 +23,7 @@ Update the version in all files:
 - src/test_my_binding/init.py
 - CHANGELOG.md
 
-git tag -a v1.0.31 -m "Release version 1.0.31 (Platform-specific builds)" && git push origin v1.0.31
+git tag -a v1.0.32 -m "Release version 1.0.32 (Platform-specific builds)" && git push origin v1.0.32
 
 Go to PyPI and add a Trusted Publisher:
 - Visit https://pypi.org/manage/account/publishing/
