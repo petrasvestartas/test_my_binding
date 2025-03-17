@@ -9,12 +9,31 @@ on:
 jobs:
   build_wheels:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, manylinux]
+        arch:
+          - x86_64
+          - arm64
+        include:
+          # Define Windows matrix with correct architectures
+          - os: windows-latest
+            arch: x86_64
+          - os: windows-latest
+            arch: amd64
+          # Define macOS matrix with correct architectures
+          - os: macos-latest
+            arch: x86_64
+          - os: macos-latest
+            arch: arm64
+          # Define Linux and manylinux (manylinux is always x86_64)
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: manylinux
+            arch: x86_64
 
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +43,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.11'  # Updated to use Python 3.11
 
       - name: Install cibuildwheel
         run: |
@@ -40,9 +59,6 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_ARCHS_WINDOWS: "AMD64 x86_64"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_BEFORE_ALL_LINUX: |
             sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
@@ -76,7 +92,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -91,7 +107,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.11'  # Also use Python 3.11 here for consistency
 
       - name: Clean build artifacts
         run: |
