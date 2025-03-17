@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Required Python version for building and testing
+          python-version: '3.12'  # Using latest Python version for building
 
       - name: Install cibuildwheel
         run: |
@@ -36,9 +36,19 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp39-*"  # Build for Python 3.9
-          CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
+          CIBW_BUILD: >-
+            cp39-* cp310-* cp311-* cp312-* 
+            pp39-*
+          CIBW_SKIP: >-
+            *-win_arm64  # Skip Windows ARM builds
+            pp*-win32    # Skip PyPy 32-bit Windows
+          CIBW_ARCHS_LINUX: "x86_64 aarch64"  # Build for x86_64 and ARM64 on Linux
+          CIBW_ARCHS_MACOS: "x86_64 arm64"    # Build for Intel and Apple Silicon
+          CIBW_ARCHS_WINDOWS: "AMD64 x86"      # Build for 64-bit and 32-bit Windows
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
+          CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
+          CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
           CIBW_BEFORE_ALL_LINUX: |
             sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
             sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
@@ -84,7 +94,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Match wheel building Python version
+          python-version: '3.12'  # Match wheel building Python version
 
       - name: Clean build artifacts
         run: |
