@@ -152,7 +152,7 @@ jobs:
     name: Build wheels on manylinux
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux_2_28_x86_64  # Using the manylinux_2_28 image
+      image: quay.io/pypa/manylinux_2_28_x86_64  # Updated to manylinux_2_28 image
     steps:
       - uses: actions/checkout@v4
         with:
@@ -177,7 +177,7 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28  # Specify manylinux_2_28 here
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28  # Set the image here
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
