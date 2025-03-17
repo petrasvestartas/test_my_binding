@@ -8,30 +8,19 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            platform: manylinux
-            arch: x86_64
             repair_tool: auditwheel
 
-          - os: macos-12  # Use macOS 12 for x86_64
-            platform: macOS
-            arch: x86_64
-            repair_tool: delocate
-
-          - os: macos-14  # Use macOS 14 for arm64 (Apple Silicon)
-            platform: macOS
-            arch: arm64
+          - os: macos-latest  # Runs on macOS (arm64 by default)
             repair_tool: delocate
 
           - os: windows-latest
-            platform: Windows
-            arch: x86_64
             repair_tool: delvewheel
 
     steps:
@@ -59,13 +48,14 @@ jobs:
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
-          CIBW_ARCHS: ${{ matrix.arch }}  # Explicitly set architecture
+          CIBW_ARCHS_MACOS: "x86_64 arm64"  # Force macOS x86_64 and arm64 builds
+          CIBW_ARCHS_WINDOWS: "AMD64"  # Ensure proper Windows cross-compilation
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
+          name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
   build_sdist:
