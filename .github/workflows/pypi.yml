@@ -14,13 +14,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [windows-latest, macos-latest]
         arch:
           - x86_64
+          - arm64
         include:
+          # Define Windows matrix with correct architectures
+          - os: windows-latest
+            arch: x86_64
+          - os: windows-latest
+            arch: amd64
           # Define macOS matrix with correct architectures
           - os: macos-latest
             arch: x86_64
+          - os: macos-latest
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +62,8 @@ jobs:
             yum makecache
             yum update -y
             yum install -y python-devel cmake gcc-c++ make
+          CIBW_BEFORE_ALL_WINDOWS: |
+            pip install delvewheel
           CIBW_BEFORE_BUILD: |
             python -m pip install --upgrade pip
             pip install numpy compas pytest build line_profiler
@@ -63,6 +73,16 @@ jobs:
             pip install --force-reinstall {wheel}
             cd {package}
             python -m pytest tests -v
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
+          CIBW_ENVIRONMENT_WINDOWS: |
+            CMAKE_GENERATOR="Visual Studio 17 2022"
+            CMAKE_GENERATOR_PLATFORM=x64
+            SETUPTOOLS_USE_DISTUTILS=stdlib
+          CIBW_ENVIRONMENT_LINUX: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+          CIBW_ENVIRONMENT_MACOS: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+            MACOSX_DEPLOYMENT_TARGET=10.14
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
@@ -132,7 +152,7 @@ jobs:
     name: Build wheels on manylinux
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux2014_x86_64
+      image: quay.io/pypa/manylinux_2_28_x86_64  # Using the manylinux_2_28 image
     steps:
       - uses: actions/checkout@v4
         with:
@@ -157,7 +177,7 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28  # Specify manylinux_2_28 here
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
