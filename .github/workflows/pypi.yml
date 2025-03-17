@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Temporarily triggering on the main branch (Remove this after testing)
+      - main  # Remove this after testing
 
 jobs:
   build_wheels:
@@ -19,12 +19,12 @@ jobs:
             arch: x86_64
             repair_tool: auditwheel
 
-          - os: macos-latest
+          - os: macos-12  # Use macOS 12 for x86_64
             platform: macOS
             arch: x86_64
             repair_tool: delocate
 
-          - os: macos-latest
+          - os: macos-14  # Use macOS 14 for arm64 (Apple Silicon)
             platform: macOS
             arch: arm64
             repair_tool: delocate
@@ -49,16 +49,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install cibuildwheel==2.23.1
 
-      - name: Clean build artifacts (Linux/Mac)
-        if: runner.os != 'Windows'
+      - name: Clean build artifacts
         shell: bash
         run: rm -rf build dist wheelhouse *.egg-info || true
-
-      - name: Clean build artifacts (Windows)
-        if: runner.os == 'Windows'
-        shell: bash  # Forces Bash instead of PowerShell
-        run: |
-          rm -rf build dist wheelhouse *.egg-info || true
 
       - name: Build wheels
         env:
@@ -66,6 +59,7 @@ jobs:
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
+          CIBW_ARCHS: ${{ matrix.arch }}  # Explicitly set architecture
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - name: Upload wheels
@@ -127,13 +121,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install twine
 
-      - name: List files before upload (Linux/Mac)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: ls -lh dist/
-
-      - name: List files before upload (Windows)
-        if: runner.os == 'Windows'
+      - name: List files before upload
         shell: bash
         run: ls -lh dist/
 
