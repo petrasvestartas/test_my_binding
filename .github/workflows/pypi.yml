@@ -53,15 +53,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install cibuildwheel==2.23.1
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            pip install auditwheel
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            pip install delocate
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            if ("${{ matrix.repair_tool }}" -eq "delvewheel") {
-              pip install delvewheel
-            }
-          fi
 
       - name: Clean build artifacts
         shell: bash
