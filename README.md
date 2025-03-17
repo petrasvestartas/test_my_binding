@@ -15,7 +15,13 @@ pip install "cibuildwheel==2.16.2" && python -m cibuildwheel --platform linux --
 
 ## Upload to PyPI build_pypi.yml result
 
-git add . && git commit -m "Bump version to 1.0.3" && git tag -a v1.0.3 -m "Release version 1.0.3" && git push && git push origin v1.0.3
+
+Update the version in all files:
+- pyproject.toml
+- src/test_my_binding/init.py
+- CHANGELOG.md
+
+git tag -a v1.0.4 -m "Release version 1.0.4" && git push origin v1.0.4
 
 Go to PyPI and add a Trusted Publisher:
 - Visit https://pypi.org/manage/account/publishing/
