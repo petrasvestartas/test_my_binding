@@ -18,10 +18,6 @@ jobs:
             os: windows-latest
             arch: AMD64
             build_tag: "*win_amd64"
-          - name: windows-win32
-            os: windows-latest
-            arch: x86
-            build_tag: "*win32"
           - name: macos-x86_64
             os: macos-latest
             arch: x86_64
@@ -38,14 +34,6 @@ jobs:
             os: ubuntu-latest
             arch: aarch64
             build_tag: "*manylinux*aarch64"
-          - name: musllinux-x86_64
-            os: ubuntu-latest
-            arch: x86_64
-            build_tag: "*musllinux*x86_64"
-          - name: musllinux-aarch64
-            os: ubuntu-latest
-            arch: aarch64
-            build_tag: "*musllinux*aarch64"
         python: [cp39, cp310, cp311, cp312]
 
     steps:
@@ -70,14 +58,12 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BUILD: "${{ matrix.python }}-${{ matrix.platform.build_tag }}"
-          CIBW_SKIP: "pp* *-win_arm64"
+          CIBW_SKIP: "pp* *-win_arm64 *musllinux* *win32 *macosx_10_9* *macosx_10_10* *macosx_10_11* *macosx_10_12*"  # Skip older macOS versions which are not supported by CGAL
           CIBW_ARCHS_LINUX: "${{ matrix.platform.arch }}"
           CIBW_ARCHS_MACOS: "${{ matrix.platform.arch }}"
-          CIBW_ARCHS_WINDOWS: "${{ matrix.platform.arch }}"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ARCHS_WINDOWS: "AMD64"  # Only build for 64-bit Windows
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
-          CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
-          CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
           CIBW_BEFORE_ALL_LINUX: |
             sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
             sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
@@ -107,6 +93,7 @@ jobs:
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
             MACOSX_DEPLOYMENT_TARGET=10.13
             CXXFLAGS="-faligned-allocation"
+            _PYTHON_HOST_PLATFORM="macosx-10.13-${{ matrix.platform.arch }}"
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
@@ -156,7 +143,7 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BUILD: "pp39-${{ matrix.platform.build_tag }}"
-          CIBW_SKIP: "*-win32"
+          CIBW_SKIP: "*-win32 *macosx_10_9* *macosx_10_10* *macosx_10_11* *macosx_10_12*"  # Skip older macOS versions
           CIBW_ARCHS_MACOS: "${{ matrix.platform.arch }}"
           CIBW_ARCHS_WINDOWS: "${{ matrix.platform.arch }}"
           CIBW_BEFORE_ALL_WINDOWS: |
@@ -179,6 +166,7 @@ jobs:
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
             MACOSX_DEPLOYMENT_TARGET=10.13
             CXXFLAGS="-faligned-allocation"
+            _PYTHON_HOST_PLATFORM="macosx-10.13-${{ matrix.platform.arch }}"
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
