@@ -69,7 +69,7 @@ CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 
 [tool.cibuildwheel]
 build-verbosity = 3
-build = ["cp39-manylinux_x86_64"]  # Only build Python 3.9 manylinux x86_64 wheels
+build = ["cp39-manylinux_x86_64"]
 test-command = """
 pip install numpy compas pytest build &&
 pip install {wheel} &&
@@ -78,18 +78,18 @@ python -m pytest tests/
 """
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
-skip = ["*-manylinux_i686", "*-musllinux_*"]  # Skip i686 and musllinux builds
+skip = ["*-manylinux_i686", "*-musllinux_*"]  
 
 [tool.cibuildwheel.linux]
 before-build = [
-    "rm -rf /project/build",  # Clean build directory
-    "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*",  # Fix repo URLs
+    "rm -rf /project/build", 
+    "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*", 
     "sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*",
-    "yum install -y epel-release",  # Add EPEL for OpenBLAS
-    "yum install -y openblas-devel"  # Install OpenBLAS for numpy
+    "yum install -y epel-release",  
+    "yum install -y openblas-devel" 
 ]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-environment.PATH = "/opt/rh/devtoolset-9/root/usr/bin:$PATH"  # Use manylinux's built-in C++ compiler
+environment.PATH = "/opt/rh/devtoolset-9/root/usr/bin:$PATH" 
 
 [tool.bumpversion]
 current_version = "1.0.51"
