@@ -27,8 +27,6 @@ if(NOT EXISTS "${CGAL_SOURCE_DIR}")
     ExternalProject_Add(
         cgal_download
         URL https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.zip
-        URL_MD5 "0c2d2c8c9d8c0b6cdb8c8b2c3e3c5c6b"
-        DOWNLOAD_NO_PROGRESS ON
         SOURCE_DIR       "${CGAL_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND     ""
@@ -37,7 +35,6 @@ if(NOT EXISTS "${CGAL_SOURCE_DIR}")
         UPDATE_COMMAND    ""
         PATCH_COMMAND     ""
         TLS_VERIFY       ON
-        DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
     add_dependencies(external_downloads cgal_download)
 endif()
@@ -183,31 +180,31 @@ foreach(source ${CPP_SOURCES})
 endforeach()
 
 nanobind_add_module(
-  test_my_binding_ext
+  compas_cgal_ext
   STABLE_ABI
   NB_STATIC
   ${CPP_SOURCES}
 )
 
 # Set include directories for the extension
-target_include_directories(test_my_binding_ext PRIVATE 
+target_include_directories(compas_cgal_ext PRIVATE 
     ${CGAL_INCLUDE_DIR}
     ${BOOST_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
 )
 
 # Make sure external dependencies are downloaded before building the extension
-add_dependencies(test_my_binding_ext external_downloads)
+add_dependencies(compas_cgal_ext external_downloads)
 
 # Enhanced PCH configuration
 set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_PCH_WARN_INVALID ON)
 
 # Configure PCH for the extension
-target_precompile_headers(test_my_binding_ext 
+target_precompile_headers(compas_cgal_ext 
     PRIVATE 
     src/compas.h
 )
 
 # Install directive for scikit-build-core
-install(TARGETS test_my_binding_ext LIBRARY DESTINATION test_my_binding)
+install(TARGETS compas_cgal_ext LIBRARY DESTINATION compas_cgal)
