@@ -7,28 +7,10 @@ on:
       - v*
 
 jobs:
-  build_wheels:
+  build_wheels_windows:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels ${{ matrix.os }} - ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
-        arch:
-          - x86_64
-          - arm64
-        include:
-          # Define Windows matrix with correct architectures
-          - os: windows-latest
-            arch: x86_64
-          - os: windows-latest
-            arch: amd64
-          # Define macOS matrix with correct architectures
-          - os: macos-latest
-            arch: x86_64
-          - os: macos-latest
-            arch: arm64
+    name: Wheels Windows x86_64
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -38,12 +20,82 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install cibuildwheel
         run: |
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==2.23.0
+          python -m pip install --upgrade pip wheel setuptools
+          pip install cibuildwheel==2.23.1
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+
+      - name: Build wheels
+        env:
+          CIBW_BUILD: "cp39-*"
+          CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
+          CIBW_BEFORE_ALL_WINDOWS: |
+            pip install delvewheel
+            pip install --upgrade pip wheel setuptools
+          CIBW_BEFORE_BUILD: |
+            python -m pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
+          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
+          CIBW_TEST_COMMAND: |
+            pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest line_profiler
+            pip install --force-reinstall {wheel}
+            cd {package}
+            python -m pytest tests -v
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
+            delvewheel repair -w {dest_dir} {wheel}
+            ls -la {dest_dir}
+          CIBW_ENVIRONMENT_WINDOWS: |
+            CMAKE_GENERATOR="Visual Studio 17 2022"
+            CMAKE_GENERATOR_PLATFORM=x64
+            SETUPTOOLS_USE_DISTUTILS=stdlib
+            DISTUTILS_USE_SDK=1
+            MSSdk=1
+            PIP_NO_BUILD_ISOLATION=0
+            PIP_NO_CACHE_DIR=off
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            CIBW_BUILD_VERBOSITY=3
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse .
+          ls -la wheelhouse/
+          file wheelhouse/*.whl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-x86_64
+          path: ./wheelhouse/*.whl
+
+  build_wheels_macos:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    name: Wheels macOS ${{ matrix.arch }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install cibuildwheel==2.23.1 delocate
 
       - name: Clean build artifacts
         run: |
@@ -54,40 +106,144 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_BEFORE_ALL_LINUX: |
-            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-            yum clean all
-            yum makecache
-            yum update -y
-            yum install -y python-devel cmake gcc-c++ make
-          CIBW_BEFORE_ALL_WINDOWS: |
-            pip install delvewheel
           CIBW_BEFORE_BUILD: |
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip wheel setuptools
             pip install numpy compas pytest build line_profiler
             rm -rf build dist wheelhouse *.egg-info
           CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
+            pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest line_profiler
             pip install --force-reinstall {wheel}
             cd {package}
             python -m pytest tests -v
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
-          CIBW_ENVIRONMENT_WINDOWS: |
-            CMAKE_GENERATOR="Visual Studio 17 2022"
-            CMAKE_GENERATOR_PLATFORM=x64
-            SETUPTOOLS_USE_DISTUTILS=stdlib
-          CIBW_ENVIRONMENT_LINUX: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
+            delocate-wheel -w {dest_dir} -v {wheel}
+            ls -la {dest_dir}
           CIBW_ENVIRONMENT_MACOS: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
-            MACOSX_DEPLOYMENT_TARGET=10.14
-        run: python -m cibuildwheel --output-dir wheelhouse .
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
+            MACOSX_DEPLOYMENT_TARGET=10.13
+            CMAKE_OSX_DEPLOYMENT_TARGET=10.13
+            CFLAGS="-mmacosx-version-min=10.13"
+            CXXFLAGS="-mmacosx-version-min=10.13"
+            OBJCFLAGS="-mmacosx-version-min=10.13"
+            OBJCXXFLAGS="-mmacosx-version-min=10.13"
+            _PYTHON_HOST_PLATFORM="macosx-10.13-{arch}"
+            PIP_NO_BUILD_ISOLATION=0
+            PIP_NO_CACHE_DIR=off
+            CIBW_BUILD_VERBOSITY=3
+            ARCHFLAGS="-arch {arch}"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse .
+          ls -la wheelhouse/
+          file wheelhouse/*.whl
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          name: wheels-macos-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+
+  build_wheels_manylinux:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    name: Wheels manylinux x86_64
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install cibuildwheel==2.23.1 auditwheel
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+
+      - name: Build wheels
+        env:
+          CIBW_BUILD: "cp39-*"
+          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686 *-win_amd64"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_BEFORE_ALL_LINUX: |
+            # Install system dependencies
+            yum install -y python-devel cmake gcc-c++ make
+
+            # Download and install CGAL with backup mirror and TLS verification
+            for url in \
+              "https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz" \
+              "https://github.com/CGAL/cgal/releases/download/releases/CGAL-6.0.1/CGAL-6.0.1.tar.xz"
+            do
+              curl -L --tlsv1.2 --proto '=https' "$url" -o CGAL.tar.xz --retry 3 --retry-delay 5 && break
+            done
+            tar xf CGAL.tar.xz
+            cd CGAL-*
+            mkdir build && cd build
+            cmake \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_STANDARD=20 \
+              -DCMAKE_CXX_FLAGS="-faligned-allocation" \
+              ..
+            make -j$(nproc)
+            make install
+            cd ../..
+            rm -rf CGAL*
+
+          CIBW_BEFORE_BUILD: |
+            python -m pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
+
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
+            # First attempt repair with auditwheel
+            if ! auditwheel repair -w {dest_dir} {wheel}; then
+              echo "Initial repair attempt failed, checking wheel contents..."
+              auditwheel show {wheel}
+              echo "Attempting repair with extra debug..."
+              AUDITWHEEL_DEBUG=1 auditwheel repair -w {dest_dir} {wheel} || echo "Wheel repair failed"
+            fi
+            ls -la {dest_dir}
+
+          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
+          CIBW_TEST_COMMAND: |
+            pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest line_profiler
+            pip install --force-reinstall {wheel}
+            cd {package}
+            python -m pytest tests -v
+
+          CIBW_ENVIRONMENT_LINUX: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            CXXFLAGS="-faligned-allocation"
+            PIP_NO_BUILD_ISOLATION=0
+            PIP_NO_CACHE_DIR=off
+            CIBW_BUILD_VERBOSITY=3
+            AUDITWHEEL_PLAT=manylinux2014_x86_64
+            _PYTHON_HOST_PLATFORM=linux_x86_64
+            LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse .
+          ls -la wheelhouse/
+          file wheelhouse/*.whl
+          # Show wheel info for debugging
+          for wheel in wheelhouse/*.whl; do
+            echo "=== Wheel info for $wheel ==="
+            auditwheel show "$wheel"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -125,7 +281,7 @@ jobs:
   publish:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     name: Publish to PyPI
-    needs: [build_wheels, build_sdist, manylinux]
+    needs: [build_wheels_windows, build_wheels_macos, build_sdist, build_wheels_manylinux]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -134,115 +290,52 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-          pattern: |
-            wheels-*
-            sdist
-
-      - name: Display structure of downloaded files
-        run: |
-          ls -la dist/
-          file dist/*.whl
-
-      - name: Verify wheel platform tags
-        run: |
-          for wheel in dist/*.whl; do
-            echo "Checking $wheel"
-            python3 -c "from wheel.wheelfile import WheelFile; print(WheelFile('$wheel').parsed_wheel_info)"
-          done
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-  manylinux:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels manylinux
-    runs-on: ubuntu-20.04
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Install cibuildwheel
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          pip install cibuildwheel==2.23.1 auditwheel
+          pip install twine check-wheel-contents
 
-      - name: Clean build artifacts
-        run: |
-          rm -rf build dist wheelhouse *.egg-info
-        shell: bash
-
-      - name: Build wheels for manylinux
-        env:
-          CIBW_BUILD: "cp39-manylinux*"
-          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686 *-win_amd64"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ARCHS_LINUX: x86_64
-          CIBW_BEFORE_ALL_LINUX: |
-            # Install system dependencies
-            yum install -y python-devel cmake gcc-c++ make
-
-            # Download and install CGAL with backup mirror and TLS verification
-            for url in \
-              "https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz" \
-              "https://github.com/CGAL/cgal/releases/download/releases/CGAL-6.0.1/CGAL-6.0.1.tar.xz"
-            do
-              curl -L --tlsv1.2 --proto '=https' "$url" -o CGAL.tar.xz --retry 3 --retry-delay 5 && break
-            done
-            tar xf CGAL.tar.xz
-            cd CGAL-*
-            mkdir build && cd build
-            cmake \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_CXX_STANDARD=20 \
-              -DCMAKE_CXX_FLAGS="-faligned-allocation" \
-              ..
-            make -j$(nproc)
-            make install
-            cd ../..
-            rm -rf CGAL*
-
-          CIBW_BEFORE_BUILD: |
-            python -m pip install --upgrade pip wheel setuptools
-            pip install numpy compas pytest build line_profiler
-            rm -rf build dist wheelhouse *.egg-info
-
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
-            auditwheel repair -w {dest_dir} {wheel} || echo "Wheel repair failed"
-            ls -la {dest_dir}
-
-          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
-          CIBW_TEST_COMMAND: |
-            pip install --force-reinstall {wheel}
-            cd {package}
-            python -m pytest tests -v
-
-          CIBW_ENVIRONMENT_LINUX: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
-            CXXFLAGS="-faligned-allocation"
-            PIP_NO_BUILD_ISOLATION=0
-            PIP_NO_CACHE_DIR=off
-            CIBW_BUILD_VERBOSITY=3
-            AUDITWHEEL_PLAT=manylinux2014_x86_64
-            _PYTHON_HOST_PLATFORM=linux_x86_64
-
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse .
-          ls -la wheelhouse/
-          file wheelhouse/*.whl
-
-      - uses: actions/upload-artifact@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: wheels-manylinux
-          path: ./wheelhouse/*.whl
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create dist directory and organize artifacts
+        run: |
+          mkdir -p dist
+          echo "=== Copying wheels ==="
+          cp artifacts/wheels-*/*.whl dist/ || echo "No wheels found"
+          echo "=== Copying sdist ==="
+          cp artifacts/sdist/* dist/ || echo "No sdist found"
+          echo "=== Contents of dist ==="
+          ls -la dist/
+          echo "=== Contents of artifacts ==="
+          ls -R artifacts/
+
+      - name: Display structure of downloaded files
+        run: |
+          ls -la artifacts/
+          ls -la dist/
+          file dist/*.whl || echo "No wheels found"
+          file dist/*.tar.gz || echo "No sdist found"
+
+      - name: Verify wheel platform tags
+        run: |
+          echo "=== Checking wheel contents ==="
+          check-wheel-contents dist/*.whl || echo "No wheels to check"
+          echo "=== Checking wheel metadata ==="
+          for wheel in dist/*.whl; do
+            echo "Checking $wheel"
+            python3 -c "from wheel.wheelfile import WheelFile; print(WheelFile('$wheel').parsed_wheel_info)" || echo "Failed to check $wheel"
+          done
+          echo "=== Checking with twine ==="
+          twine check dist/* || { echo "Twine check failed"; exit 1; }
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
