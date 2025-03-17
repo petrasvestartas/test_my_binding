@@ -51,11 +51,12 @@ jobs:
 
       - name: Clean build artifacts (Linux/Mac)
         if: runner.os != 'Windows'
-        run: rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+        run: rm -rf build dist wheelhouse *.egg-info || true
 
       - name: Clean build artifacts (Windows)
         if: runner.os == 'Windows'
-        shell: bash  # Use Bash instead of PowerShell
+        shell: bash  # Forces Bash instead of PowerShell
         run: |
           rm -rf build dist wheelhouse *.egg-info || true
 
@@ -128,15 +129,16 @@ jobs:
 
       - name: List files before upload (Linux/Mac)
         if: runner.os != 'Windows'
+        shell: bash
         run: ls -lh dist/
 
       - name: List files before upload (Windows)
         if: runner.os == 'Windows'
-        shell: bash  # Use Bash instead of PowerShell
+        shell: bash
         run: ls -lh dist/
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
 
       - name: Publish missing macOS x86_64 wheel (if needed)
-        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl || echo
+        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl || true
