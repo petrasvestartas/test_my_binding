@@ -27,6 +27,8 @@ if(NOT EXISTS "${CGAL_SOURCE_DIR}")
     ExternalProject_Add(
         cgal_download
         URL https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.zip
+        URL_MD5 "0c2d2c8c9d8c0b6cdb8c8b2c3e3c5c6b"
+        DOWNLOAD_NO_PROGRESS ON
         SOURCE_DIR       "${CGAL_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND     ""
@@ -35,6 +37,7 @@ if(NOT EXISTS "${CGAL_SOURCE_DIR}")
         UPDATE_COMMAND    ""
         PATCH_COMMAND     ""
         TLS_VERIFY       ON
+        DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
     add_dependencies(external_downloads cgal_download)
 endif()
