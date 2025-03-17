@@ -9,12 +9,8 @@ on:
 jobs:
   build_wheels_windows:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels Windows ${{ matrix.arch }}
+    name: Wheels Windows
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64]
 
     steps:
       - uses: actions/checkout@v4
@@ -87,7 +83,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-windows-${{ matrix.arch }}
+          name: wheels-windows
           path: ./wheelhouse/*.whl
 
   build_wheels_macos:
@@ -162,12 +158,8 @@ jobs:
 
   build_wheels_manylinux:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels manylinux ${{ matrix.arch }}
+    name: Wheels manylinux
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64]
 
     steps:
       - uses: actions/checkout@v4
@@ -194,7 +186,7 @@ jobs:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "pp* *musllinux* *-win32 *_i686"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_ARCHS_LINUX: x86_64
           CIBW_BEFORE_ALL_LINUX: |
             # Install system dependencies
             yum install -y python-devel cmake gcc-c++ make
@@ -264,7 +256,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-manylinux-${{ matrix.arch }}
+          name: wheels-manylinux
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -331,32 +323,54 @@ jobs:
         run: |
           mkdir -p dist
           echo "=== Copying wheels ==="
-          find artifacts/wheels-* -name "*.whl" -exec cp {} dist/ \; || echo "No wheels found"
+          # First verify artifacts exist
+          if ! ls artifacts/wheels-*/*.whl >/dev/null 2>&1; then
+            echo "ERROR: No wheel files found in artifacts!"
+            ls -R artifacts/
+            exit 1
+          fi
+          # Copy wheels with verbose output
+          cp -v artifacts/wheels-*/*.whl dist/
+          
           echo "=== Copying sdist ==="
-          find artifacts/sdist -name "*.tar.gz" -exec cp {} dist/ \; || echo "No sdist found"
+          if ! ls artifacts/sdist/*.tar.gz >/dev/null 2>&1; then
+            echo "ERROR: No sdist files found!"
+            ls -R artifacts/
+            exit 1
+          fi
+          cp -v artifacts/sdist/*.tar.gz dist/
+          
           echo "=== Contents of dist ==="
           ls -la dist/
-          echo "=== Contents of artifacts ==="
-          find artifacts -type f
-
-      - name: Display structure of downloaded files
-        run: |
-          ls -la artifacts/
-          ls -la dist/
-          file dist/*.whl || echo "No wheels found"
-          file dist/*.tar.gz || echo "No sdist found"
+          
+          # Verify we have files to publish
+          wheel_count=$(ls dist/*.whl 2>/dev/null | wc -l)
+          sdist_count=$(ls dist/*.tar.gz 2>/dev/null | wc -l)
+          echo "Found $wheel_count wheels and $sdist_count sdist files"
+          
+          if [ "$wheel_count" -eq 0 ] || [ "$sdist_count" -eq 0 ]; then
+            echo "ERROR: Missing required distribution files!"
+            exit 1
+          fi
 
       - name: Verify wheel platform tags
         run: |
           echo "=== Checking wheel contents ==="
-          check-wheel-contents dist/*.whl || echo "No wheels to check"
-          echo "=== Checking wheel metadata ==="
+          # First verify wheels exist and show them
+          echo "Wheels to check:"
+          ls -l dist/*.whl
+          
+          # Run checks on each wheel individually to avoid globbing issues
           for wheel in dist/*.whl; do
-            echo "Checking $wheel"
-            python3 -c "from wheel.wheelfile import WheelFile; print(WheelFile('$wheel').parsed_wheel_info)" || echo "Failed to check $wheel"
+            echo "Checking contents of $wheel"
+            check-wheel-contents "$wheel" || exit 1
+            
+            echo "Checking metadata of $wheel"
+            python3 -c "from wheel.wheelfile import WheelFile; print(WheelFile('$wheel').parsed_wheel_info)" || exit 1
           done
+          
           echo "=== Checking with twine ==="
-          twine check dist/* || { echo "Twine check failed"; exit 1; }
+          twine check dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
