@@ -17,28 +17,24 @@ jobs:
         include:
           - platform: Windows
             os: windows-latest
-            shell: pwsh
             arch: x86_64
             skip: "*-musllinux_* *-win32 *_i686 *-win_arm64"
             repair_tool: delvewheel
             
           - platform: manylinux
             os: ubuntu-20.04
-            shell: bash
             arch: x86_64
             skip: "pp* *musllinux* *-win32 *_i686"
             repair_tool: auditwheel
             
           - platform: macOS
             os: macos-latest
-            shell: bash
             arch: x86_64
             skip: "*-musllinux_* *-win32 *_i686"
             repair_tool: delocate
             
           - platform: macOS
             os: macos-latest
-            shell: bash
             arch: arm64
             skip: "*-musllinux_* *-win32 *_i686"
             repair_tool: delocate
@@ -57,159 +53,176 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel setuptools
           pip install cibuildwheel==2.23.1
-          if [[ "${{ matrix.repair_tool }}" == "auditwheel" ]]; then
+          if [ "${{ matrix.repair_tool }}" = "auditwheel" ]; then
             pip install auditwheel
-          elif [[ "${{ matrix.repair_tool }}" == "delocate" ]]; then
+          elif [ "${{ matrix.repair_tool }}" = "delocate" ]; then
             pip install delocate
-          elif [[ "${{ matrix.repair_tool }}" == "delvewheel" ]]; then
+          elif [ "${{ matrix.repair_tool }}" = "delvewheel" ]; then
             pip install delvewheel
           fi
-        shell: bash
 
       - name: Clean build artifacts
-        shell: ${{ matrix.shell }}
         run: |
-          if [[ "${{ matrix.platform }}" == "Windows" ]]; then
-            if (Test-Path build) { Remove-Item -Recurse -Force build }
-            if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-            if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
-            Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
-          else
-            rm -rf build dist wheelhouse *.egg-info
-          fi
+          rm -rf build dist wheelhouse *.egg-info
+        if: runner.os != 'Windows'
 
-      - name: Build wheels
-        env:
-          CIBW_BUILD: "cp39-*"
-          CIBW_SKIP: ${{ matrix.skip }}
+      - name: Clean build artifacts Windows
+        run: |
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
+          Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
+        if: runner.os == 'Windows'
+        shell: pwsh
+
+      - name: Configure build environment
+        run: |
+          echo "CIBW_BUILD=cp39-*" >> $GITHUB_ENV
+          echo "CIBW_SKIP=${{ matrix.skip }}" >> $GITHUB_ENV
           
           # Windows-specific settings
-          CIBW_BEFORE_ALL_WINDOWS: |
-            pip install delvewheel
-            pip install --upgrade pip wheel setuptools
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
-            delvewheel repair -w {dest_dir} {wheel}
-            Get-ChildItem -Path {dest_dir}
-          CIBW_ENVIRONMENT_WINDOWS: |
-            CMAKE_GENERATOR="Visual Studio 17 2022"
-            CMAKE_GENERATOR_PLATFORM=x64
-            CMAKE_SYSTEM_VERSION=10.0.19041.0
-            WindowsSDKVersion=10.0.19041.0
-            SETUPTOOLS_USE_DISTUTILS=stdlib
-            DISTUTILS_USE_SDK=1
-            MSSdk=1
-            PIP_NO_BUILD_ISOLATION=0
-            PIP_NO_CACHE_DIR=off
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"
-            CIBW_BUILD_VERBOSITY=3
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo 'CIBW_BEFORE_ALL_WINDOWS<<EOF' >> $GITHUB_ENV
+            echo 'pip install delvewheel' >> $GITHUB_ENV
+            echo 'pip install --upgrade pip wheel setuptools' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+            
+            echo 'CIBW_REPAIR_WHEEL_COMMAND_WINDOWS<<EOF' >> $GITHUB_ENV
+            echo 'delvewheel repair -w {dest_dir} {wheel}' >> $GITHUB_ENV
+            echo 'Get-ChildItem -Path {dest_dir}' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+            
+            echo 'CIBW_ENVIRONMENT_WINDOWS<<EOF' >> $GITHUB_ENV
+            echo 'CMAKE_GENERATOR="Visual Studio 17 2022"' >> $GITHUB_ENV
+            echo 'CMAKE_GENERATOR_PLATFORM=x64' >> $GITHUB_ENV
+            echo 'CMAKE_SYSTEM_VERSION=10.0.19041.0' >> $GITHUB_ENV
+            echo 'WindowsSDKVersion=10.0.19041.0' >> $GITHUB_ENV
+            echo 'SETUPTOOLS_USE_DISTUTILS=stdlib' >> $GITHUB_ENV
+            echo 'DISTUTILS_USE_SDK=1' >> $GITHUB_ENV
+            echo 'MSSdk=1' >> $GITHUB_ENV
+            echo 'PIP_NO_BUILD_ISOLATION=0' >> $GITHUB_ENV
+            echo 'PIP_NO_CACHE_DIR=off' >> $GITHUB_ENV
+            echo 'CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"' >> $GITHUB_ENV
+            echo 'CIBW_BUILD_VERBOSITY=3' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+          fi
 
           # manylinux-specific settings
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ARCHS_LINUX: x86_64
-          CIBW_BEFORE_ALL_LINUX: |
-            # Install system dependencies
-            yum install -y python-devel cmake gcc-c++ make
-
-            # Download and install CGAL with backup mirror and TLS verification
-            for url in \
-              "https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz" \
-              "https://github.com/CGAL/cgal/releases/download/releases/CGAL-6.0.1/CGAL-6.0.1.tar.xz"
-            do
-              curl -L --tlsv1.2 --proto '=https' "$url" -o CGAL.tar.xz --retry 3 --retry-delay 5 && break
-            done
-            tar xf CGAL.tar.xz
-            cd CGAL-*
-            mkdir build && cd build
-            cmake \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_CXX_STANDARD=20 \
-              -DCMAKE_CXX_FLAGS="-faligned-allocation" \
-              ..
-            make -j$(nproc)
-            make install
-            cd ../..
-            rm -rf CGAL*
-
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
-            # First attempt repair with auditwheel
-            if ! auditwheel repair -w {dest_dir} {wheel}; then
-              echo "Initial repair attempt failed, checking wheel contents..."
-              auditwheel show {wheel}
-              echo "Attempting repair with extra debug..."
-              AUDITWHEEL_DEBUG=1 auditwheel repair -w {dest_dir} {wheel} || echo "Wheel repair failed"
-            fi
-            ls -la {dest_dir}
-
-          CIBW_ENVIRONMENT_LINUX: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
-            CXXFLAGS="-faligned-allocation"
-            PIP_NO_BUILD_ISOLATION=0
-            PIP_NO_CACHE_DIR=off
-            CIBW_BUILD_VERBOSITY=3
-            AUDITWHEEL_PLAT=manylinux2014_x86_64
-            _PYTHON_HOST_PLATFORM=linux_x86_64
-            LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            echo "CIBW_MANYLINUX_X86_64_IMAGE=manylinux2014" >> $GITHUB_ENV
+            echo "CIBW_ARCHS_LINUX=x86_64" >> $GITHUB_ENV
+            
+            echo 'CIBW_BEFORE_ALL_LINUX<<EOF' >> $GITHUB_ENV
+            echo 'yum install -y python-devel cmake gcc-c++ make' >> $GITHUB_ENV
+            echo 'for url in \' >> $GITHUB_ENV
+            echo '  "https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz" \' >> $GITHUB_ENV
+            echo '  "https://github.com/CGAL/cgal/releases/download/releases/CGAL-6.0.1/CGAL-6.0.1.tar.xz"; do' >> $GITHUB_ENV
+            echo '  curl -L --tlsv1.2 --proto "=https" "$url" -o CGAL.tar.xz --retry 3 --retry-delay 5 && break' >> $GITHUB_ENV
+            echo 'done' >> $GITHUB_ENV
+            echo 'tar xf CGAL.tar.xz' >> $GITHUB_ENV
+            echo 'cd CGAL-*' >> $GITHUB_ENV
+            echo 'mkdir build && cd build' >> $GITHUB_ENV
+            echo 'cmake \' >> $GITHUB_ENV
+            echo '  -DCMAKE_BUILD_TYPE=Release \' >> $GITHUB_ENV
+            echo '  -DCMAKE_CXX_STANDARD=20 \' >> $GITHUB_ENV
+            echo '  -DCMAKE_CXX_FLAGS="-faligned-allocation" \' >> $GITHUB_ENV
+            echo '  ..' >> $GITHUB_ENV
+            echo 'make -j$(nproc)' >> $GITHUB_ENV
+            echo 'make install' >> $GITHUB_ENV
+            echo 'cd ../..' >> $GITHUB_ENV
+            echo 'rm -rf CGAL*' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+            
+            echo 'CIBW_REPAIR_WHEEL_COMMAND_LINUX<<EOF' >> $GITHUB_ENV
+            echo 'if ! auditwheel repair -w {dest_dir} {wheel}; then' >> $GITHUB_ENV
+            echo '  echo "Initial repair attempt failed, checking wheel contents..."' >> $GITHUB_ENV
+            echo '  auditwheel show {wheel}' >> $GITHUB_ENV
+            echo '  echo "Attempting repair with extra debug..."' >> $GITHUB_ENV
+            echo '  AUDITWHEEL_DEBUG=1 auditwheel repair -w {dest_dir} {wheel} || echo "Wheel repair failed"' >> $GITHUB_ENV
+            echo 'fi' >> $GITHUB_ENV
+            echo 'ls -la {dest_dir}' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+            
+            echo 'CIBW_ENVIRONMENT_LINUX<<EOF' >> $GITHUB_ENV
+            echo 'CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"' >> $GITHUB_ENV
+            echo 'CXXFLAGS="-faligned-allocation"' >> $GITHUB_ENV
+            echo 'PIP_NO_BUILD_ISOLATION=0' >> $GITHUB_ENV
+            echo 'PIP_NO_CACHE_DIR=off' >> $GITHUB_ENV
+            echo 'CIBW_BUILD_VERBOSITY=3' >> $GITHUB_ENV
+            echo 'AUDITWHEEL_PLAT=manylinux2014_x86_64' >> $GITHUB_ENV
+            echo '_PYTHON_HOST_PLATFORM=linux_x86_64' >> $GITHUB_ENV
+            echo 'LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+          fi
 
           # macOS-specific settings
-          CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
-            delocate-wheel -w {dest_dir} -v {wheel}
-            ls -la {dest_dir}
-          CIBW_ENVIRONMENT_MACOS: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
-            MACOSX_DEPLOYMENT_TARGET=10.13
-            CMAKE_OSX_DEPLOYMENT_TARGET=10.13
-            CFLAGS="-mmacosx-version-min=10.13"
-            CXXFLAGS="-mmacosx-version-min=10.13"
-            OBJCFLAGS="-mmacosx-version-min=10.13"
-            OBJCXXFLAGS="-mmacosx-version-min=10.13"
-            _PYTHON_HOST_PLATFORM="macosx-10.13-{arch}"
-            PIP_NO_BUILD_ISOLATION=0
-            PIP_NO_CACHE_DIR=off
-            CIBW_BUILD_VERBOSITY=3
-            ARCHFLAGS="-arch {arch}"
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            echo 'CIBW_REPAIR_WHEEL_COMMAND_MACOS<<EOF' >> $GITHUB_ENV
+            echo 'delocate-wheel -w {dest_dir} -v {wheel}' >> $GITHUB_ENV
+            echo 'ls -la {dest_dir}' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+            
+            echo 'CIBW_ENVIRONMENT_MACOS<<EOF' >> $GITHUB_ENV
+            echo 'CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"' >> $GITHUB_ENV
+            echo 'MACOSX_DEPLOYMENT_TARGET=10.13' >> $GITHUB_ENV
+            echo 'CMAKE_OSX_DEPLOYMENT_TARGET=10.13' >> $GITHUB_ENV
+            echo 'CFLAGS="-mmacosx-version-min=10.13"' >> $GITHUB_ENV
+            echo 'CXXFLAGS="-mmacosx-version-min=10.13"' >> $GITHUB_ENV
+            echo 'OBJCFLAGS="-mmacosx-version-min=10.13"' >> $GITHUB_ENV
+            echo 'OBJCXXFLAGS="-mmacosx-version-min=10.13"' >> $GITHUB_ENV
+            echo '_PYTHON_HOST_PLATFORM="macosx-10.13-${{ matrix.arch }}"' >> $GITHUB_ENV
+            echo 'PIP_NO_BUILD_ISOLATION=0' >> $GITHUB_ENV
+            echo 'PIP_NO_CACHE_DIR=off' >> $GITHUB_ENV
+            echo 'CIBW_BUILD_VERBOSITY=3' >> $GITHUB_ENV
+            echo 'ARCHFLAGS="-arch ${{ matrix.arch }}"' >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+          fi
 
           # Common settings
-          CIBW_BEFORE_BUILD: |
-            python -m pip install --upgrade pip wheel setuptools
-            pip install numpy compas pytest build line_profiler
-            if [[ "${{ matrix.platform }}" == "Windows" ]]; then
-              if (Test-Path build) { Remove-Item -Recurse -Force build }
-              if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-              if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
-              Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
-            else
-              rm -rf build dist wheelhouse *.egg-info
-            fi
+          echo 'CIBW_BEFORE_BUILD<<EOF' >> $GITHUB_ENV
+          echo 'python -m pip install --upgrade pip wheel setuptools' >> $GITHUB_ENV
+          echo 'pip install numpy compas pytest build line_profiler' >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
 
-          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
-          CIBW_TEST_COMMAND: |
-            pip install --upgrade pip wheel setuptools
-            pip install numpy compas pytest line_profiler
-            pip install --force-reinstall {wheel}
-            cd {package}
-            python -m pytest tests -v
+          echo 'CIBW_TEST_REQUIRES<<EOF' >> $GITHUB_ENV
+          echo 'numpy' >> $GITHUB_ENV
+          echo 'compas' >> $GITHUB_ENV
+          echo 'pytest' >> $GITHUB_ENV
+          echo 'line_profiler' >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
 
-        shell: ${{ matrix.shell }}
+          echo 'CIBW_TEST_COMMAND<<EOF' >> $GITHUB_ENV
+          echo 'pip install --upgrade pip wheel setuptools' >> $GITHUB_ENV
+          echo 'pip install numpy compas pytest line_profiler' >> $GITHUB_ENV
+          echo 'pip install --force-reinstall {wheel}' >> $GITHUB_ENV
+          echo 'cd {package}' >> $GITHUB_ENV
+          echo 'python -m pytest tests -v' >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Build wheels Unix
+        if: runner.os != 'Windows'
         run: |
-          if [[ "${{ matrix.platform }}" == "Windows" ]]; then
-            python -m cibuildwheel --output-dir wheelhouse
-            Write-Host "=== Contents of wheelhouse ==="
-            Get-ChildItem -Path wheelhouse
-            Get-Item wheelhouse/*.whl | ForEach-Object {
-              Write-Host "=== File info for $($_.Name) ==="
-              $_.Length/1KB
-            }
-          else
-            python -m cibuildwheel --output-dir wheelhouse .
-            ls -la wheelhouse/
-            file wheelhouse/*.whl
-            if [[ "${{ matrix.repair_tool }}" == "auditwheel" ]]; then
-              for wheel in wheelhouse/*.whl; do
-                echo "=== Wheel info for $wheel ==="
-                auditwheel show "$wheel"
-              done
-            fi
+          python -m cibuildwheel --output-dir wheelhouse .
+          ls -la wheelhouse/
+          file wheelhouse/*.whl
+          if [ "${{ matrix.repair_tool }}" = "auditwheel" ]; then
+            for wheel in wheelhouse/*.whl; do
+              echo "=== Wheel info for $wheel ==="
+              auditwheel show "$wheel"
+            done
           fi
+
+      - name: Build wheels Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+          Write-Host "=== Contents of wheelhouse ==="
+          Get-ChildItem -Path wheelhouse
+          Get-Item wheelhouse/*.whl | ForEach-Object {
+            Write-Host "=== File info for $($_.Name) ==="
+            $_.Length/1KB
+          }
 
       - uses: actions/upload-artifact@v4
         with:
