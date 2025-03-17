@@ -150,9 +150,8 @@ jobs:
   manylinux:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     name: Build wheels on manylinux
-    runs-on: ubuntu-latest
-    container:
-      image: quay.io/pypa/manylinux_2_28_x86_64  # Updated to manylinux_2_28 image
+    runs-on: ubuntu-20.04
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -165,8 +164,8 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==2.23.0
+          python -m pip install --upgrade pip wheel setuptools
+          pip install cibuildwheel==2.23.1
 
       - name: Clean build artifacts
         run: |
@@ -176,8 +175,52 @@ jobs:
       - name: Build wheels for manylinux
         env:
           CIBW_BUILD: "cp39-*"
-          CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28  # Set the image here
+          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686 *-win_amd64"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_BEFORE_ALL_LINUX: |
+            # Install system dependencies
+            yum install -y python-devel cmake gcc-c++ make
+
+            # Download and install CGAL with backup mirror
+            for url in \
+              "https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz" \
+              "https://github.com/CGAL/cgal/releases/download/releases/CGAL-6.0.1/CGAL-6.0.1.tar.xz"
+            do
+              curl -L --tlsv1.2 "$url" -o CGAL.tar.xz && break
+            done
+            tar xf CGAL.tar.xz
+            cd CGAL-*
+            mkdir build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 ..
+            make -j$(nproc)
+            make install
+            cd ../..
+            rm -rf CGAL*
+
+          CIBW_BEFORE_BUILD: |
+            python -m pip install --upgrade pip wheel setuptools
+            pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
+
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: ""
+
+          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
+          CIBW_TEST_COMMAND: |
+            pip install --force-reinstall {wheel}
+            cd {package}
+            python -m pytest tests -v
+
+          CIBW_ENVIRONMENT_LINUX: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            CXXFLAGS="-faligned-allocation"
+            PIP_NO_BUILD_ISOLATION=0
+            PIP_NO_CACHE_DIR=off
+            CIBW_BUILD_VERBOSITY=3
+            DISTUTILS_USE_SDK=1
+            MSSdk=1
+            _PYTHON_HOST_PLATFORM="manylinux2014_x86_64"
+
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
