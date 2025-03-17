@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Runs on pushes to main (Change this if needed)
+      - main  # Temporarily triggering on main branch (Remove this after testing)
 
 jobs:
   build_wheels:
@@ -57,7 +57,11 @@ jobs:
 
       - name: Clean build artifacts (Windows)
         if: runner.os == 'Windows'
-        run: Remove-Item -Recurse -Force build, dist, wheelhouse, *.egg-info
+        run: |
+          if (Test-Path "build") { Remove-Item -Recurse -Force build }
+          if (Test-Path "dist") { Remove-Item -Recurse -Force dist }
+          if (Test-Path "wheelhouse") { Remove-Item -Recurse -Force wheelhouse }
+          if (Test-Path "*.egg-info") { Remove-Item -Recurse -Force *.egg-info }
 
       - name: Build wheels
         env:
