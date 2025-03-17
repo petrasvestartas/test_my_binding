@@ -5,7 +5,7 @@ __author__ = ["tom van mele", "petras vestartas"]
 __copyright__ = "Block Research Group - ETH Zurich"
 __license__ = "MIT License"
 __email__ = ["van.mele@arch.ethz.ch", "vestartas@arch.ethz.ch"]
-__version__ = "1.0.17"
+__version__ = "1.0.19"
 
 HERE = os.path.dirname(__file__)
 
