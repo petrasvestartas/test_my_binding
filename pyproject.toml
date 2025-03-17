@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.22"
+version = "1.0.23"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -92,7 +92,7 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 environment.PATH = "/opt/rh/devtoolset-9/root/usr/bin:$PATH"  # Use manylinux's built-in C++ compiler
 
 [tool.bumpversion]
-current_version = "1.0.22"
+current_version = "1.0.23"
 message = "Bump version to {new_version}"
 commit = true
 tag = true
