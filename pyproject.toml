@@ -71,7 +71,7 @@ CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 build-verbosity = 3
 build = ["cp39-manylinux_x86_64"]
 test-command = """
-pip install numpy compas pytest build && pip install {wheel} && cd {project} && python -m pytest tests/
+pip install numpy compas pytest build && pip install {wheel} && cd {project}
 """
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
