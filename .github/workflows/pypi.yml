@@ -9,8 +9,12 @@ on:
 jobs:
   build_wheels_windows:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels Windows x86_64
+    name: Wheels Windows ${{ matrix.arch }}
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +33,11 @@ jobs:
 
       - name: Clean build artifacts
         run: |
-          rm -rf build dist wheelhouse *.egg-info
-        shell: bash
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
+          Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
+        shell: pwsh
 
       - name: Build wheels
         env:
@@ -42,7 +49,10 @@ jobs:
           CIBW_BEFORE_BUILD: |
             python -m pip install --upgrade pip wheel setuptools
             pip install numpy compas pytest build line_profiler
-            rm -rf build dist wheelhouse *.egg-info
+            if (Test-Path build) { Remove-Item -Recurse -Force build }
+            if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+            if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
+            Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
           CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
             pip install --upgrade pip wheel setuptools
@@ -52,25 +62,32 @@ jobs:
             python -m pytest tests -v
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
             delvewheel repair -w {dest_dir} {wheel}
-            ls -la {dest_dir}
+            Get-ChildItem -Path {dest_dir}
           CIBW_ENVIRONMENT_WINDOWS: |
             CMAKE_GENERATOR="Visual Studio 17 2022"
             CMAKE_GENERATOR_PLATFORM=x64
+            CMAKE_SYSTEM_VERSION=10.0.19041.0
+            WindowsSDKVersion=10.0.19041.0
             SETUPTOOLS_USE_DISTUTILS=stdlib
             DISTUTILS_USE_SDK=1
             MSSdk=1
             PIP_NO_BUILD_ISOLATION=0
             PIP_NO_CACHE_DIR=off
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"
             CIBW_BUILD_VERBOSITY=3
         run: |
-          python -m cibuildwheel --output-dir wheelhouse .
-          ls -la wheelhouse/
-          file wheelhouse/*.whl
+          python -m cibuildwheel --output-dir wheelhouse
+          Write-Host "=== Contents of wheelhouse ==="
+          Get-ChildItem -Path wheelhouse
+          Get-Item wheelhouse/*.whl | ForEach-Object {
+            Write-Host "=== File info for $($_.Name) ==="
+            $_.Length/1KB
+          }
+        shell: pwsh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-windows-x86_64
+          name: wheels-windows-${{ matrix.arch }}
           path: ./wheelhouse/*.whl
 
   build_wheels_macos:
@@ -145,8 +162,12 @@ jobs:
 
   build_wheels_manylinux:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    name: Wheels manylinux x86_64
+    name: Wheels manylinux ${{ matrix.arch }}
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
 
     steps:
       - uses: actions/checkout@v4
@@ -171,9 +192,9 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
-          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686 *-win_amd64"
+          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ARCHS_LINUX: x86_64
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_BEFORE_ALL_LINUX: |
             # Install system dependencies
             yum install -y python-devel cmake gcc-c++ make
@@ -243,7 +264,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-manylinux-x86_64
+          name: wheels-manylinux-${{ matrix.arch }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -310,13 +331,13 @@ jobs:
         run: |
           mkdir -p dist
           echo "=== Copying wheels ==="
-          cp artifacts/wheels-*/*.whl dist/ || echo "No wheels found"
+          find artifacts/wheels-* -name "*.whl" -exec cp {} dist/ \; || echo "No wheels found"
           echo "=== Copying sdist ==="
-          cp artifacts/sdist/* dist/ || echo "No sdist found"
+          find artifacts/sdist -name "*.tar.gz" -exec cp {} dist/ \; || echo "No sdist found"
           echo "=== Contents of dist ==="
           ls -la dist/
           echo "=== Contents of artifacts ==="
-          ls -R artifacts/
+          find artifacts -type f
 
       - name: Display structure of downloaded files
         run: |
