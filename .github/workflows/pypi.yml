@@ -4,23 +4,39 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Remove this after testing
+      - main  # Remove after testing
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.platform }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
+            platform: manylinux
+            arch: x86_64
+            cibw_archs: "x86_64"
+            cibw_container: "quay.io/pypa/manylinux2014_x86_64"
             repair_tool: auditwheel
 
-          - os: macos-latest  # Runs on macOS (arm64 by default)
+          - os: macos-13  # Ensures macOS x86_64 builds properly
+            platform: macOS
+            arch: x86_64
+            cibw_archs: "x86_64"
+            repair_tool: delocate
+
+          - os: macos-latest  # Ensures macOS arm64 builds
+            platform: macOS
+            arch: arm64
+            cibw_archs: "arm64"
             repair_tool: delocate
 
           - os: windows-latest
+            platform: Windows
+            arch: x86_64
+            cibw_archs: "AMD64"
             repair_tool: delvewheel
 
     steps:
@@ -46,16 +62,16 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ARCHS: "${{ matrix.cibw_archs }}"
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
-          CIBW_ARCHS_MACOS: "x86_64 arm64"  # Force macOS x86_64 and arm64 builds
-          CIBW_ARCHS_WINDOWS: "AMD64"  # Ensure proper Windows cross-compilation
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_CONTAINER: "${{ matrix.cibw_container }}"
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: wheelhouse/*.whl
 
   build_sdist:
