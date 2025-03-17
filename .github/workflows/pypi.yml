@@ -55,11 +55,9 @@ jobs:
 
       - name: Clean build artifacts (Windows)
         if: runner.os == 'Windows'
+        shell: bash  # Use Bash instead of PowerShell
         run: |
-          if (Test-Path "build") { Remove-Item -Recurse -Force build }
-          if (Test-Path "dist") { Remove-Item -Recurse -Force dist }
-          if (Test-Path "wheelhouse") { Remove-Item -Recurse -Force wheelhouse }
-          if (Test-Path "*.egg-info") { Remove-Item -Recurse -Force *.egg-info }
+          rm -rf build dist wheelhouse *.egg-info || true
 
       - name: Build wheels
         env:
@@ -134,7 +132,8 @@ jobs:
 
       - name: List files before upload (Windows)
         if: runner.os == 'Windows'
-        run: Get-ChildItem dist
+        shell: bash  # Use Bash instead of PowerShell
+        run: ls -lh dist/
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
