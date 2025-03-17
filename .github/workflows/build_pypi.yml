@@ -71,7 +71,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sdist
-        with:
           path: dist
 
       - name: Publish to PyPI
