@@ -11,7 +11,7 @@ This project is licensed under the GNU Lesser General Public License v3 (LGPLv3)
 
 ## Build Many Linux
 
-pip install "cibuildwheel==2.16.2" && python -m cibuildwheel --platform linux --output-dir dist
+pip install "cibuildwheel==2.23.1" && python -m cibuildwheel --platform linux --output-dir dist
 
 ## Upload to PyPI build_pypi.yml result
 
@@ -21,7 +21,7 @@ Update the version in all files:
 - src/test_my_binding/init.py
 - CHANGELOG.md
 
-git tag -a v1.0.14 -m "Release version 1.0.14" && git push origin v1.0.14
+git tag -a v1.0.16 -m "Release version 1.0.16" && git push origin v1.0.16
 
 Go to PyPI and add a Trusted Publisher:
 - Visit https://pypi.org/manage/account/publishing/
