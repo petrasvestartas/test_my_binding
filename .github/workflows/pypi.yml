@@ -7,13 +7,46 @@ on:
       - v*
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  build_wheels_cpython:
+    name: Build ${{ matrix.python }}-${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        platform:
+          - name: windows-amd64
+            os: windows-latest
+            arch: AMD64
+            build_tag: "*win_amd64"
+          - name: windows-win32
+            os: windows-latest
+            arch: x86
+            build_tag: "*win32"
+          - name: macos-x86_64
+            os: macos-latest
+            arch: x86_64
+            build_tag: "*macosx_*x86_64"
+          - name: macos-arm64
+            os: macos-latest
+            arch: arm64
+            build_tag: "*macosx_*arm64"
+          - name: manylinux-x86_64
+            os: ubuntu-latest
+            arch: x86_64
+            build_tag: "*manylinux*x86_64"
+          - name: manylinux-aarch64
+            os: ubuntu-latest
+            arch: aarch64
+            build_tag: "*manylinux*aarch64"
+          - name: musllinux-x86_64
+            os: ubuntu-latest
+            arch: x86_64
+            build_tag: "*musllinux*x86_64"
+          - name: musllinux-aarch64
+            os: ubuntu-latest
+            arch: aarch64
+            build_tag: "*musllinux*aarch64"
+        python: [cp39, cp310, cp311, cp312]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +56,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'  # Using latest Python version for building
+          python-version: '3.12'
 
       - name: Install cibuildwheel
         run: |
@@ -36,16 +69,12 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: >-
-            cp39-* cp310-* cp311-* cp312-* 
-            pp39-*
-          CIBW_SKIP: >-
-            *-win_arm64  # Skip Windows ARM builds
-            pp*-win32    # Skip PyPy 32-bit Windows
-          CIBW_ARCHS_LINUX: "x86_64 aarch64"  # Build for x86_64 and ARM64 on Linux
-          CIBW_ARCHS_MACOS: "x86_64 arm64"    # Build for Intel and Apple Silicon
-          CIBW_ARCHS_WINDOWS: "AMD64 x86"      # Build for 64-bit and 32-bit Windows
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
+          CIBW_BUILD: "${{ matrix.python }}-${{ matrix.platform.build_tag }}"
+          CIBW_SKIP: "pp* *-win_arm64"
+          CIBW_ARCHS_LINUX: "${{ matrix.platform.arch }}"
+          CIBW_ARCHS_MACOS: "${{ matrix.platform.arch }}"
+          CIBW_ARCHS_WINDOWS: "${{ matrix.platform.arch }}"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
           CIBW_MUSLLINUX_X86_64_IMAGE: musllinux_1_2
           CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
@@ -71,16 +100,90 @@ jobs:
             CMAKE_GENERATOR="Visual Studio 17 2022"
             CMAKE_GENERATOR_PLATFORM=x64
             SETUPTOOLS_USE_DISTUTILS=stdlib
+            CMAKE_CXX_STANDARD=20
           CIBW_ENVIRONMENT_LINUX: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
           CIBW_ENVIRONMENT_MACOS: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
-            MACOSX_DEPLOYMENT_TARGET=10.14
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            MACOSX_DEPLOYMENT_TARGET=10.13
+            CXXFLAGS="-faligned-allocation"
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.python }}-${{ matrix.platform.name }}
+          path: ./wheelhouse/*.whl
+
+  build_wheels_pypy:
+    name: Build PyPy3.9-${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: windows-amd64
+            os: windows-latest
+            arch: AMD64
+            build_tag: "*win_amd64"
+          - name: macos-x86_64
+            os: macos-latest
+            arch: x86_64
+            build_tag: "*macosx_*x86_64"
+          - name: macos-arm64
+            os: macos-latest
+            arch: arm64
+            build_tag: "*macosx_*arm64"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: |
+          pip install cibuildwheel==2.23.1
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+
+      - name: Build wheels
+        env:
+          CIBW_BUILD: "pp39-${{ matrix.platform.build_tag }}"
+          CIBW_SKIP: "*-win32"
+          CIBW_ARCHS_MACOS: "${{ matrix.platform.arch }}"
+          CIBW_ARCHS_WINDOWS: "${{ matrix.platform.arch }}"
+          CIBW_BEFORE_ALL_WINDOWS: |
+            pip install delvewheel
+          CIBW_BEFORE_BUILD: |
+            pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
+          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
+          CIBW_TEST_COMMAND: |
+            pip install --force-reinstall {wheel}
+            cd {package}
+            python -m pytest tests -v
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
+          CIBW_ENVIRONMENT_WINDOWS: |
+            CMAKE_GENERATOR="Visual Studio 17 2022"
+            CMAKE_GENERATOR_PLATFORM=x64
+            SETUPTOOLS_USE_DISTUTILS=stdlib
+            CMAKE_CXX_STANDARD=20
+          CIBW_ENVIRONMENT_MACOS: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
+            MACOSX_DEPLOYMENT_TARGET=10.13
+            CXXFLAGS="-faligned-allocation"
+        run: python -m cibuildwheel --output-dir wheelhouse .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-pp39-${{ matrix.platform.name }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -94,7 +197,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'  # Match wheel building Python version
+          python-version: '3.12'
 
       - name: Clean build artifacts
         run: |
@@ -114,9 +217,8 @@ jobs:
           path: dist/*.tar.gz
 
   publish:
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels_cpython, build_wheels_pypy, build_sdist]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
       url: https://pypi.org/p/test_my_binding
