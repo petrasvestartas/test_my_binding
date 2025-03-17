@@ -62,7 +62,7 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
-          CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
+          CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"  # No changes here, just ensure macOS x86_64 is not skipped.
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_BEFORE_ALL_LINUX: |
             sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
@@ -98,7 +98,8 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: |
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
             MACOSX_DEPLOYMENT_TARGET=10.13
-        run: python -m cibuildwheel --output-dir wheelhouse .
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse . --verbose  # Added --verbose for more detailed logging
 
       - uses: actions/upload-artifact@v4
         with:
