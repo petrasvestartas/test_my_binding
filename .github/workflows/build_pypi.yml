@@ -1,13 +1,10 @@
-name: Build and Test
+name: Build and Deploy
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
-      - v*
-  pull_request:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   build_wheels:
@@ -20,58 +17,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pypa/cibuildwheel-action@v2
         with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'  # Required Python version for building and testing
-
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==2.23.0
-
-      - name: Clean build artifacts
-        run: |
-          rm -rf build dist wheelhouse *.egg-info
-        shell: bash
-
-      - name: Build wheels
+          output-dir: wheelhouse
         env:
-          CIBW_BUILD: "cp39-*"  # Build for Python 3.9
+          CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
-          CIBW_BEFORE_ALL_LINUX: |
-            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-            yum clean all
-            yum makecache
-            yum update -y
-            yum install -y python-devel cmake gcc-c++ make
-          CIBW_BEFORE_ALL_WINDOWS: |
-            pip install delvewheel
-          CIBW_BEFORE_BUILD: |
-            python -m pip install --upgrade pip
-            pip install numpy compas pytest build line_profiler
-            rm -rf build dist wheelhouse *.egg-info
-          CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
-          CIBW_TEST_COMMAND: |
-            pip install --force-reinstall {wheel}
-            cd {package}
-            python -m pytest tests -v
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_BEFORE_ALL_WINDOWS: "pip install delvewheel"
+          CIBW_BEFORE_BUILD: "pip install numpy compas pytest build line_profiler"
+          CIBW_TEST_REQUIRES: "numpy compas pytest line_profiler"
+          CIBW_TEST_COMMAND: "pytest tests -v"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
           CIBW_ENVIRONMENT_WINDOWS: |
             CMAKE_GENERATOR="Visual Studio 17 2022"
             CMAKE_GENERATOR_PLATFORM=x64
-            SETUPTOOLS_USE_DISTUTILS=stdlib
-          CIBW_ENVIRONMENT_LINUX: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
-          CIBW_ENVIRONMENT_MACOS: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
-            MACOSX_DEPLOYMENT_TARGET=10.14
-        run: python -m cibuildwheel --output-dir wheelhouse .
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.14"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -83,23 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'  # Match wheel building Python version
-
-      - name: Clean build artifacts
-        run: |
-          rm -rf build dist wheelhouse *.egg-info
-        shell: bash
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install numpy compas pytest build line_profiler
 
       - name: Build SDist
         run: python -m build --sdist
@@ -113,9 +58,6 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/test_my_binding
     permissions:
       id-token: write
 
@@ -129,6 +71,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sdist
+        with:
           path: dist
 
       - name: Publish to PyPI
