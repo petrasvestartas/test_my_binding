@@ -29,5 +29,5 @@ Go to PyPI and add a Trusted Publisher:
 - Fill in the details:
     - Owner: petrasvestartas
     - Repository name: test_my_binding
-    - Workflow name: build_pypi.yml
+    - Workflow name: pypi.yml
     - Environment: pypi
