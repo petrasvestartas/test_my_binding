@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Runs on pushes to main (Change this to your branch name if needed)
+      - main  # Runs on pushes to main (Change this if needed)
 
 jobs:
   build_wheels:
@@ -50,6 +50,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install cibuildwheel==2.23.1
+
+      - name: Clean build artifacts (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: rm -rf build dist wheelhouse *.egg-info
+
+      - name: Clean build artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: Remove-Item -Recurse -Force build, dist, wheelhouse, *.egg-info
 
       - name: Build wheels
         env:
@@ -122,8 +130,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install twine
 
-      - name: List files before upload
+      - name: List files before upload (Linux/Mac)
+        if: runner.os != 'Windows'
         run: ls -lh dist/
+
+      - name: List files before upload (Windows)
+        if: runner.os == 'Windows'
+        run: Get-ChildItem dist
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
