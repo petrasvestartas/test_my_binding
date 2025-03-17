@@ -100,6 +100,9 @@ jobs:
             MACOSX_DEPLOYMENT_TARGET=10.13
         run: python -m cibuildwheel --output-dir wheelhouse .
 
+      - name: List built wheels (Debugging)
+        run: ls -lh wheelhouse/
+
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
@@ -158,18 +161,8 @@ jobs:
           name: sdist
           path: dist
 
-      - name: Publish macOS x86_64 wheel to PyPI
-        run: |
-          python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl
+      - name: List downloaded files before publishing (Debugging)
+        run: ls -lh dist/
 
-      - name: Publish macOS arm64 wheel to PyPI
-        run: |
-          python -m twine upload dist/*.cp39-*macosx_11_0_arm64*.whl
-
-      - name: Publish Windows wheel to PyPI
-        run: |
-          python -m twine upload dist/*.cp39-*win_amd64*.whl
-
-      - name: Publish manylinux wheel to PyPI
-        run: |
-          python -m twine upload dist/*.cp39-*manylinux*.whl
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
