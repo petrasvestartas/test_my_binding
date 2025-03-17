@@ -1,13 +1,16 @@
-name: pypi
+name: Build and Test
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - v*
+  pull_request:
 
 jobs:
-  build_wheels_cpython:
+  build_wheels:
     name: Build ${{ matrix.python }}-${{ matrix.platform.name }}
     runs-on: ${{ matrix.platform.os }}
     strategy:
@@ -18,6 +21,10 @@ jobs:
             os: windows-latest
             arch: AMD64
             build_tag: "*win_amd64"
+          - name: windows-x86_64
+            os: windows-latest
+            arch: x86_64
+            build_tag: "*win64"
           - name: macos-x86_64
             os: macos-latest
             arch: x86_64
@@ -30,10 +37,6 @@ jobs:
             os: ubuntu-latest
             arch: x86_64
             build_tag: "*manylinux*x86_64"
-          - name: manylinux-aarch64
-            os: ubuntu-latest
-            arch: aarch64
-            build_tag: "*manylinux*aarch64"
         python: [cp39, cp310, cp311, cp312]
 
     steps:
@@ -48,21 +51,21 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
+          python -m pip install --upgrade pip wheel setuptools
           pip install cibuildwheel==2.23.1
+
       - name: Clean build artifacts
         run: |
           rm -rf build dist wheelhouse *.egg-info
-        shell: bash
 
       - name: Build wheels
         env:
           CIBW_BUILD: "${{ matrix.python }}-${{ matrix.platform.build_tag }}"
-          CIBW_SKIP: "pp* *-win_arm64 *musllinux*"  # Skip PyPy (handled in pypy job), Windows ARM, and all musllinux
+          CIBW_SKIP: "pp* *musllinux* *-win32 *_i686 *macosx_10_9* *macosx_10_10* *macosx_10_11* *macosx_10_12* *macosx_10.9* *macosx_10.10* *macosx_10.11* *macosx_10.12*"
           CIBW_ARCHS_LINUX: "${{ matrix.platform.arch }}"
           CIBW_ARCHS_MACOS: "${{ matrix.platform.arch }}"
           CIBW_ARCHS_WINDOWS: "${{ matrix.platform.arch }}"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
           CIBW_BEFORE_ALL_LINUX: |
             sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
             sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
@@ -72,26 +75,43 @@ jobs:
             yum install -y python-devel cmake gcc-c++ make
           CIBW_BEFORE_ALL_WINDOWS: |
             pip install delvewheel
+            choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows.SDK.19041"
           CIBW_BEFORE_BUILD: |
+            python -m pip install --upgrade pip wheel setuptools
             pip install numpy compas pytest build line_profiler
             rm -rf build dist wheelhouse *.egg-info
+          CIBW_BEFORE_BUILD_MACOS: |
+            pip install delocate
+            MACOSX_DEPLOYMENT_TARGET=10.13 pip install --upgrade pip wheel setuptools
+            MACOSX_DEPLOYMENT_TARGET=10.13 pip install numpy compas pytest build line_profiler
           CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
             pip install --force-reinstall {wheel}
             cd {package}
             python -m pytest tests -v
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
+            delocate-wheel --require-archs ${{ matrix.platform.arch }} -w {dest_dir} {wheel}
           CIBW_ENVIRONMENT_WINDOWS: |
             CMAKE_GENERATOR="Visual Studio 17 2022"
             CMAKE_GENERATOR_PLATFORM=x64
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
             SETUPTOOLS_USE_DISTUTILS=stdlib
-            CMAKE_CXX_STANDARD=20
+            DISTUTILS_USE_SDK=1
+            MSSdk=1
+            PIP_NO_BUILD_ISOLATION=0
+            PIP_NO_CACHE_DIR=off
           CIBW_ENVIRONMENT_LINUX: |
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
-          CIBW_ENVIRONMENT_MACOS: |
-            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20"
-            MACOSX_DEPLOYMENT_TARGET=10.13
             CXXFLAGS="-faligned-allocation"
+          CIBW_ENVIRONMENT_MACOS: |
+            MACOSX_DEPLOYMENT_TARGET=10.13
+            CMAKE_OSX_DEPLOYMENT_TARGET=10.13
+            _PYTHON_HOST_PLATFORM="macosx-10.13-${{ matrix.platform.arch }}"
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
+            CFLAGS="-mmacosx-version-min=10.13"
+            CXXFLAGS="-mmacosx-version-min=10.13 -faligned-allocation"
+            LDFLAGS="-mmacosx-version-min=10.13"
         run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
@@ -100,7 +120,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build_sdist:
-    name: Build source distribution
+    name: Build SDist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -115,11 +135,12 @@ jobs:
       - name: Clean build artifacts
         run: |
           rm -rf build dist wheelhouse *.egg-info
-        shell: bash
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install numpy compas pytest build line_profiler
+
       - name: Build SDist
         run: python -m build --sdist
 
@@ -129,8 +150,9 @@ jobs:
           path: dist/*.tar.gz
 
   publish:
-    needs: [build_wheels_cpython, build_sdist]
+    needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
       url: https://pypi.org/p/test_my_binding
@@ -138,18 +160,18 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
           path: dist
+          pattern: wheels-*
           merge-multiple: true
 
-      - uses: actions/download-artifact@v4
+      - name: Download sdist
+        uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
