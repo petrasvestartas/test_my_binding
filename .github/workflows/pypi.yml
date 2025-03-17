@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Remove after testing
+      - main  # Temporarily allowing main branch pushes
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.platform }} (${{ matrix.arch }})
+    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,26 +17,21 @@ jobs:
           - os: ubuntu-latest
             platform: manylinux
             arch: x86_64
-            cibw_archs: "x86_64"
-            cibw_container: "quay.io/pypa/manylinux2014_x86_64"
             repair_tool: auditwheel
 
-          - os: macos-13  # Ensures macOS x86_64 builds properly
+          - os: macos-latest
             platform: macOS
             arch: x86_64
-            cibw_archs: "x86_64"
             repair_tool: delocate
 
-          - os: macos-latest  # Ensures macOS arm64 builds
+          - os: macos-latest
             platform: macOS
             arch: arm64
-            cibw_archs: "arm64"
             repair_tool: delocate
 
           - os: windows-latest
             platform: Windows
             arch: x86_64
-            cibw_archs: "AMD64"
             repair_tool: delvewheel
 
     steps:
@@ -56,20 +51,23 @@ jobs:
 
       - name: Clean build artifacts
         shell: bash
-        run: rm -rf build dist wheelhouse *.egg-info || true
+        run: rm -rf build dist wheelhouse *.egg-info
 
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
-          CIBW_ARCHS: "${{ matrix.cibw_archs }}"
-          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_CONTAINER: "${{ matrix.cibw_container }}"
+          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
+          CIBW_TEST_COMMAND: |
+            pip install --force-reinstall {wheel}
+            if [ -d "tests" ]; then python -m pytest tests/ -v; else echo "No tests found, skipping."; fi
+          CIBW_TEST_COMMAND_WINDOWS: |
+            pip install --force-reinstall {wheel}
+            if (Test-Path "tests") { python -m pytest tests/ -v } else { Write-Host "No tests found, skipping." }
         run: python -m cibuildwheel --output-dir wheelhouse .
 
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: wheelhouse/*.whl
@@ -95,8 +93,7 @@ jobs:
       - name: Build SDist
         run: python -m build --sdist
 
-      - name: Upload SDist
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -128,11 +125,10 @@ jobs:
           pip install twine
 
       - name: List files before upload
-        shell: bash
-        run: ls -lh dist/
+        run: ls -lh dist/ || Get-ChildItem dist
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
 
       - name: Publish missing macOS x86_64 wheel (if needed)
-        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl || true
+        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
