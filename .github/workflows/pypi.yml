@@ -188,21 +188,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          "CIBW_BUILD=cp39-*" >> $env:GITHUB_ENV
-          "CIBW_SKIP=${{ matrix.skip }}" >> $env:GITHUB_ENV
+          "CIBW_BUILD=cp39-*" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CIBW_SKIP=*-musllinux_* *-win32 *_i686 *-win_arm64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           
           # Windows-specific settings
-          @'
+          $windowsSettings = @'
           CIBW_BEFORE_ALL_WINDOWS=pip install delvewheel
           pip install --upgrade pip wheel setuptools
-          '@ >> $env:GITHUB_ENV
-          
-          @'
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS=delvewheel repair -w {dest_dir} {wheel}
           Get-ChildItem -Path {dest_dir}
-          '@ >> $env:GITHUB_ENV
-          
-          @'
           CIBW_ENVIRONMENT_WINDOWS=CMAKE_GENERATOR="Visual Studio 17 2022"
           CMAKE_GENERATOR_PLATFORM=x64
           CMAKE_SYSTEM_VERSION=10.0.19041.0
@@ -214,28 +208,24 @@ jobs:
           PIP_NO_CACHE_DIR=off
           CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"
           CIBW_BUILD_VERBOSITY=3
-          '@ >> $env:GITHUB_ENV
+          '@
+          $windowsSettings | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           
           # Common settings
-          @'
+          $commonSettings = @'
           CIBW_BEFORE_BUILD=python -m pip install --upgrade pip wheel setuptools
           pip install numpy compas pytest build line_profiler
-          '@ >> $env:GITHUB_ENV
-          
-          @'
           CIBW_TEST_REQUIRES=numpy
           compas
           pytest
           line_profiler
-          '@ >> $env:GITHUB_ENV
-          
-          @'
           CIBW_TEST_COMMAND=pip install --upgrade pip wheel setuptools
           pip install numpy compas pytest line_profiler
           pip install --force-reinstall {wheel}
           cd {package}
           python -m pytest tests -v
-          '@ >> $env:GITHUB_ENV
+          '@
+          $commonSettings | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build wheels Unix
         if: runner.os != 'Windows'
