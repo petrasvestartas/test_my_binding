@@ -50,6 +50,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install cibuildwheel
+        if: runner.os != 'Windows'
         run: |
           python -m pip install --upgrade pip wheel setuptools
           pip install cibuildwheel==2.23.1
@@ -61,51 +62,35 @@ jobs:
             pip install delvewheel
           fi
 
+      - name: Install cibuildwheel Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install cibuildwheel==2.23.1
+          if ("${{ matrix.repair_tool }}" -eq "delvewheel") {
+            pip install delvewheel
+          }
+
       - name: Clean build artifacts
+        if: runner.os != 'Windows'
         run: |
           rm -rf build dist wheelhouse *.egg-info
-        if: runner.os != 'Windows'
 
       - name: Clean build artifacts Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           if (Test-Path build) { Remove-Item -Recurse -Force build }
           if (Test-Path dist) { Remove-Item -Recurse -Force dist }
           if (Test-Path wheelhouse) { Remove-Item -Recurse -Force wheelhouse }
           Get-ChildItem -Filter "*.egg-info" | Remove-Item -Recurse -Force
-        if: runner.os == 'Windows'
-        shell: pwsh
 
-      - name: Configure build environment
+      - name: Configure build environment Unix
+        if: runner.os != 'Windows'
         run: |
           echo "CIBW_BUILD=cp39-*" >> $GITHUB_ENV
           echo "CIBW_SKIP=${{ matrix.skip }}" >> $GITHUB_ENV
-          
-          # Windows-specific settings
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            echo 'CIBW_BEFORE_ALL_WINDOWS<<EOF' >> $GITHUB_ENV
-            echo 'pip install delvewheel' >> $GITHUB_ENV
-            echo 'pip install --upgrade pip wheel setuptools' >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-            
-            echo 'CIBW_REPAIR_WHEEL_COMMAND_WINDOWS<<EOF' >> $GITHUB_ENV
-            echo 'delvewheel repair -w {dest_dir} {wheel}' >> $GITHUB_ENV
-            echo 'Get-ChildItem -Path {dest_dir}' >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-            
-            echo 'CIBW_ENVIRONMENT_WINDOWS<<EOF' >> $GITHUB_ENV
-            echo 'CMAKE_GENERATOR="Visual Studio 17 2022"' >> $GITHUB_ENV
-            echo 'CMAKE_GENERATOR_PLATFORM=x64' >> $GITHUB_ENV
-            echo 'CMAKE_SYSTEM_VERSION=10.0.19041.0' >> $GITHUB_ENV
-            echo 'WindowsSDKVersion=10.0.19041.0' >> $GITHUB_ENV
-            echo 'SETUPTOOLS_USE_DISTUTILS=stdlib' >> $GITHUB_ENV
-            echo 'DISTUTILS_USE_SDK=1' >> $GITHUB_ENV
-            echo 'MSSdk=1' >> $GITHUB_ENV
-            echo 'PIP_NO_BUILD_ISOLATION=0' >> $GITHUB_ENV
-            echo 'PIP_NO_CACHE_DIR=off' >> $GITHUB_ENV
-            echo 'CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"' >> $GITHUB_ENV
-            echo 'CIBW_BUILD_VERBOSITY=3' >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-          fi
 
           # manylinux-specific settings
           if [ "${{ runner.os }}" = "Linux" ]; then
@@ -199,6 +184,59 @@ jobs:
           echo 'python -m pytest tests -v' >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
+      - name: Configure build environment Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CIBW_BUILD=cp39-*" >> $env:GITHUB_ENV
+          "CIBW_SKIP=${{ matrix.skip }}" >> $env:GITHUB_ENV
+          
+          # Windows-specific settings
+          @'
+          CIBW_BEFORE_ALL_WINDOWS=pip install delvewheel
+          pip install --upgrade pip wheel setuptools
+          '@ >> $env:GITHUB_ENV
+          
+          @'
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS=delvewheel repair -w {dest_dir} {wheel}
+          Get-ChildItem -Path {dest_dir}
+          '@ >> $env:GITHUB_ENV
+          
+          @'
+          CIBW_ENVIRONMENT_WINDOWS=CMAKE_GENERATOR="Visual Studio 17 2022"
+          CMAKE_GENERATOR_PLATFORM=x64
+          CMAKE_SYSTEM_VERSION=10.0.19041.0
+          WindowsSDKVersion=10.0.19041.0
+          SETUPTOOLS_USE_DISTUTILS=stdlib
+          DISTUTILS_USE_SDK=1
+          MSSdk=1
+          PIP_NO_BUILD_ISOLATION=0
+          PIP_NO_CACHE_DIR=off
+          CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_SYSTEM_VERSION=10.0.19041.0"
+          CIBW_BUILD_VERBOSITY=3
+          '@ >> $env:GITHUB_ENV
+          
+          # Common settings
+          @'
+          CIBW_BEFORE_BUILD=python -m pip install --upgrade pip wheel setuptools
+          pip install numpy compas pytest build line_profiler
+          '@ >> $env:GITHUB_ENV
+          
+          @'
+          CIBW_TEST_REQUIRES=numpy
+          compas
+          pytest
+          line_profiler
+          '@ >> $env:GITHUB_ENV
+          
+          @'
+          CIBW_TEST_COMMAND=pip install --upgrade pip wheel setuptools
+          pip install numpy compas pytest line_profiler
+          pip install --force-reinstall {wheel}
+          cd {package}
+          python -m pytest tests -v
+          '@ >> $env:GITHUB_ENV
+
       - name: Build wheels Unix
         if: runner.os != 'Windows'
         run: |
@@ -266,6 +304,10 @@ jobs:
       id-token: write
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
