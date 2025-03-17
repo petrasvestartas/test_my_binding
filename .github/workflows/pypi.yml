@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: pypi
 
 on:
   workflow_dispatch:
@@ -26,24 +26,34 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.9'  # Required Python version for building and testing
 
-      - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v2.16.2
-        with:
-          output-dir: wheelhouse
+      - name: Install cibuildwheel
+        run: |
+          pip install cibuildwheel==2.23.1
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
+
+      - name: Build wheels
         env:
-          CIBW_BUILD: "cp39-*"
+          CIBW_BUILD: "cp39-*"  # Build for Python 3.9
           CIBW_SKIP: "*-musllinux_* *-win32 *_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014  # For C++ support
           CIBW_BEFORE_ALL_LINUX: |
-            rm -rf /var/cache/yum && yum clean all
+            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+            yum clean all
+            yum makecache
             yum update -y
-            yum install -y python3-devel cmake gcc-c++ make
+            yum install -y python-devel cmake gcc-c++ make
           CIBW_BEFORE_ALL_WINDOWS: |
             pip install delvewheel
           CIBW_BEFORE_BUILD: |
             pip install numpy compas pytest build line_profiler
+            rm -rf build dist wheelhouse *.egg-info
           CIBW_TEST_REQUIRES: numpy compas pytest line_profiler
           CIBW_TEST_COMMAND: |
             pip install --force-reinstall {wheel}
@@ -54,10 +64,12 @@ jobs:
             CMAKE_GENERATOR="Visual Studio 17 2022"
             CMAKE_GENERATOR_PLATFORM=x64
             SETUPTOOLS_USE_DISTUTILS=stdlib
-          CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'"
+          CIBW_ENVIRONMENT_LINUX: |
+            CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
           CIBW_ENVIRONMENT_MACOS: |
             CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
             MACOSX_DEPLOYMENT_TARGET=10.14
+        run: python -m cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
@@ -75,7 +87,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.9'  # Match wheel building Python version
+
+      - name: Clean build artifacts
+        run: |
+          rm -rf build dist wheelhouse *.egg-info
+        shell: bash
 
       - name: Install dependencies
         run: |
