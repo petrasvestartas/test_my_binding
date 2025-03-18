@@ -99,6 +99,10 @@ jobs:
         run: |
           python -c "import test_my_binding; print(test_my_binding.__file__)"
           pip list
+          pip show test_my_binding
+          python -c "import test_my_binding; print('test_my_binding imported successfully')"
+          python -c "import test_my_binding.booleans; print('booleans imported successfully')"
+          python -c "import test_my_binding.some_other_module; print('some_other_module imported successfully')"
           python -m pytest tests/ -v
 
   build_sdist:
