@@ -95,7 +95,7 @@ jobs:
       - name: Run Tests (Linux/macOS)
         if: runner.os != 'Windows'
         run: python -m pytest tests/ -v
-  
+
       - name: Run Tests (Windows)
         if: runner.os == 'Windows'
         run: |
