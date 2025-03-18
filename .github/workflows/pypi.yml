@@ -94,9 +94,6 @@ jobs:
           pip install pytest
           pip list
 
-      - name: Verify installation
-        run: python -c "import test_my_binding.test_my_binding_ext"
-
       - name: Run Tests
         run: python -m pytest tests/ -v
 
