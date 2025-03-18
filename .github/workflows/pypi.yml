@@ -77,7 +77,14 @@ jobs:
         run: pip install pytest
       - name: Run Tests
         shell: bash
-        run: python -m pytest tests/ -v
+        run: |
+          echo "Running tests..."
+          if [ -d "tests" ] || Test-Path -Path "tests"; then
+            echo "Tests directory found, proceeding with tests..."
+            python -m pytest tests/ -v
+          else
+            echo "No tests directory found! Exiting..."
+            exit 1
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
