@@ -56,7 +56,7 @@ jobs:
       - name: List directory contents
         run: |
           echo "Listing current directory contents..."
-          ls -lh || dir
+          Get-ChildItem || dir
 
       - name: Check for tests
         run: |
