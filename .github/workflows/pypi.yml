@@ -92,11 +92,16 @@ jobs:
           dir
           echo "==================================================================="
 
-      - name: Run Tests
-        shell: bash
+      - name: Run Tests (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: python -m pytest tests/ -v
+  
+      - name: Run Tests (Windows)
+        if: runner.os == 'Windows'
         run: |
           cd $env:GITHUB_WORKSPACE
           python -m pytest tests/ -v
+
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
