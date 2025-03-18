@@ -54,23 +54,25 @@ jobs:
         run: rm -rf build dist wheelhouse *.egg-info
 
       - name: List directory contents
+        shell: bash
         run: |
           echo "Listing current directory contents..."
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            Get-ChildItem || dir
+            pwsh -Command "Get-ChildItem || dir"
           else
             ls -lh || dir
           fi
 
       - name: Check for tests
+        shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            if (Test-Path "tests") {
+            if pwsh -Command "Test-Path tests"; then
               echo "Tests directory found, proceeding with tests..."
-            } else {
+            else
               echo "No tests directory found!"
               exit 1
-            }
+            fi
           else
             if [ -d "tests" ]; then
               echo "Tests directory found, proceeding with tests..."
@@ -155,7 +157,7 @@ jobs:
       - name: List files before upload
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            Get-ChildItem -Path . -Recurse -Force
+            pwsh -Command "Get-ChildItem -Path . -Recurse -Force"
           else
             ls -lhR
           fi
