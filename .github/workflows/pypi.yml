@@ -88,29 +88,28 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "Running tests on Windows"
-            # For Windows, use the path in D: drive
+            # Use GITHUB_WORKSPACE environment variable to point to repo root
             pwsh -Command "
-              # Define the path for Windows
-              $workingDir = 'D:\a\test_my_binding\test_my_binding'
-              if (Test-Path '$workingDir\tests') {
+              $workingDir = '$env:GITHUB_WORKSPACE'
+              if (Test-Path '$workingDir/tests') {
                   Write-Host 'Tests directory found, proceeding with tests...'
-                  python -m pytest '$workingDir\tests' -v
+                  python -m pytest '$workingDir/tests' -v
                 } else {
                   Write-Host 'No tests directory found! Exiting...'
                   exit 1
                 }
               "
-            elif [[ "$RUNNER_OS" == "macOS" || "$RUNNER_OS" == "Linux" ]]; then
-              echo "Running tests on macOS/Ubuntu"
-              # For macOS and Ubuntu, adjust the path accordingly
-              if [ -d "tests" ]; then
-                echo "Tests directory found, proceeding with tests..."
-                python -m pytest tests/ -v
-              else
-                echo "No tests directory found! Exiting..."
-                exit 1
-              fi
+          elif [[ "$RUNNER_OS" == "macOS" || "$RUNNER_OS" == "Linux" ]]; then
+            echo "Running tests on macOS/Ubuntu"
+            # Relative path to tests
+            if [ -d "tests" ]; then
+              echo "Tests directory found, proceeding with tests..."
+              python -m pytest tests/ -v
+            else
+              echo "No tests directory found! Exiting..."
+              exit 1
             fi
+          fi
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
