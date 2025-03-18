@@ -90,6 +90,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pwsh -Command "
+              cd D:\a\test_my_binding\test_my_binding
               if (Test-Path tests) {
                 Write-Host 'Tests directory found, proceeding with tests...'
                 python -m pytest tests/ -v
