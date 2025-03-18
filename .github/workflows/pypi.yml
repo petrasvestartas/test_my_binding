@@ -56,12 +56,20 @@ jobs:
       - name: List directory contents
         run: |
           echo "Listing current directory contents..."
-          Get-ChildItem || dir
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            Get-ChildItem || dir
+          else
+            ls -lh || dir
+          fi
 
       - name: Check for tests
         run: |
-          if [ ! -d "tests" ]; then echo "No tests directory found!"; exit 1; fi
-          echo "Tests directory found, proceeding with tests..."
+          if (Test-Path "tests") {
+            echo "Tests directory found, proceeding with tests..."
+          } else {
+            echo "No tests directory found!"
+            exit 1
+          }
           pip install pytest
 
       - name: Build wheels
