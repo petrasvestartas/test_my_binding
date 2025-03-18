@@ -73,13 +73,6 @@ build = ["cp39-manylinux_x86_64", "cp39-win_amd64"]  # Build for Python 3.9 many
 test-command = """pip install numpy compas pytest build && pip install {wheel} && 
                   cd {project} && 
                   python -m pytest tests/"""
-# test-command = """pip install numpy compas pytest build && pip install {wheel} && 
-#                   cd {project} && 
-#                   if [[ "$RUNNER_OS" == "Windows" ]]; then
-#                       pwsh -Command "cd $env:GITHUB_WORKSPACE; python -m pytest tests/"
-#                   else
-#                       python -m pytest tests/
-#                   fi"""
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
 skip = ["*-manylinux_i686", "*-musllinux_*"]  
