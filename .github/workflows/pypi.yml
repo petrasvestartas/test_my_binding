@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - main  # Temporarily allowing main branch pushes
+      - main  
       - '*ci*'
 
 jobs:
@@ -88,20 +88,13 @@ jobs:
           name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: wheelhouse
 
-      - name: Verify wheel contents
-        run: |
-          ls -lh wheelhouse/
-          unzip -l wheelhouse/*.whl || true
-
       - name: Install wheel and dependencies
         run: |
           pip install --find-links=wheelhouse test_my_binding
           pip install pytest
 
       - name: Verify installation
-        run: |
-          which python
-          python -c "import test_my_binding.test_my_binding_ext"
+        run: python -c "import test_my_binding.test_my_binding_ext"
 
       - name: Run Tests
         run: python -m pytest tests/ -v
@@ -135,9 +128,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
+          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist
-          merge-multiple: true
 
       - uses: actions/download-artifact@v4
         with:
@@ -146,14 +138,6 @@ jobs:
 
       - name: Install Twine
         run: pip install twine
-
-      - name: List files before upload
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pwsh -Command "Get-ChildItem -Path . -Recurse -Force"
-          else
-            ls -lhR
-          fi
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
