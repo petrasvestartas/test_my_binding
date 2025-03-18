@@ -72,8 +72,8 @@ build-verbosity = 3
 build = ["cp39-manylinux_x86_64", "cp39-win_amd64"]  # Build for Python 3.9 manylinux x86_64 and Windows x86_64
 test-command = """pip install numpy compas pytest build && pip install {wheel} && 
                   cd {project} && 
-                  if [ "$RUNNER_OS" == "Windows" ]; then
-                      cd $env:GITHUB_WORKSPACE && python -m pytest tests/
+                  if [[ "$RUNNER_OS" == "Windows" ]]; then
+                      pwsh -Command "cd $env:GITHUB_WORKSPACE; python -m pytest tests/"
                   else
                       python -m pytest tests/
                   fi"""
