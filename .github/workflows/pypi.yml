@@ -64,11 +64,20 @@ jobs:
 
       - name: Check for tests
         run: |
-          if [ -d "tests" ]; then
-            echo "Tests directory found, proceeding with tests..."
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            if (Test-Path "tests") {
+              echo "Tests directory found, proceeding with tests..."
+            } else {
+              echo "No tests directory found!"
+              exit 1
+            }
           else
-            echo "No tests directory found!"
-            exit 1
+            if [ -d "tests" ]; then
+              echo "Tests directory found, proceeding with tests..."
+            else
+              echo "No tests directory found!"
+              exit 1
+            fi
           fi
           pip install pytest
 
@@ -80,11 +89,9 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
           CIBW_TEST_COMMAND: |
             pip install --force-reinstall {wheel}
-            echo "Running tests..."
             if [ -d "tests" ]; then python -m pytest tests/ -v; else echo "No tests found, skipping."; fi
           CIBW_TEST_COMMAND_WINDOWS: |
             pip install --force-reinstall {wheel}
-            echo "Running tests..."
             if (Test-Path "tests") { python -m pytest tests/ -v } else { Write-Host "No tests found, skipping." }
         run: python -m cibuildwheel --output-dir wheelhouse .
 
@@ -146,7 +153,12 @@ jobs:
           pip install twine
 
       - name: List files before upload
-        run: ls -lh dist/ || Get-ChildItem dist
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            Get-ChildItem || dir
+          else
+            ls -lh || dir
+          fi
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
