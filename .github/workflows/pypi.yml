@@ -155,9 +155,9 @@ jobs:
       - name: List files before upload
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            Get-ChildItem || dir
+            Get-ChildItem -Path . -Recurse -Force
           else
-            ls -lh || dir
+            ls -lhR
           fi
 
       - name: Publish to PyPI
