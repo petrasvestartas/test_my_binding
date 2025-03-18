@@ -88,7 +88,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           echo "==================== Current Directory Contents ===================="
-          echo "Full Path: $(pwd)"
+          echo "Full Path: %cd%"
           dir
           echo "==================================================================="
 
@@ -99,7 +99,7 @@ jobs:
       - name: Run Tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          cd $env:GITHUB_WORKSPACE
+          cd %GITHUB_WORKSPACE%
           python -m pytest tests/ -v
 
   build_sdist:
