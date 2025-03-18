@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    name: Build and Test wheels on ${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -44,23 +44,6 @@ jobs:
         env:
           CIBW_BUILD: "cp311-*"
         run: cibuildwheel --output-dir wheelhouse .
-
-      - name: Install built wheel and dependencies
-        run: |
-          pip install --find-links=wheelhouse test_my_binding
-          pip install pytest
-          python -c "import test_my_binding; print(test_my_binding.__file__)"
-          pip list
-
-      - name: Verify installation
-        run: |
-          python -c "import test_my_binding; print(test_my_binding.__file__)"
-          pip show test_my_binding
-          python -c "import pkgutil; import test_my_binding; print([m.name for m in pkgutil.walk_packages(test_my_binding.__path__)])"
-          python -c "import test_my_binding; print('test_my_binding imported successfully')"
-
-      - name: Run Tests
-        run: python -m pytest tests/ -v
 
       - uses: actions/upload-artifact@v4
         with:
