@@ -75,6 +75,21 @@ jobs:
 
       - name: Install dependencies
         run: pip install pytest
+
+      - name: Print current directory contents (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          echo "==================== Current Directory Contents ===================="
+          ls -al
+          echo "==================================================================="
+
+      - name: Print current directory contents (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "==================== Current Directory Contents ===================="
+          dir
+          echo "==================================================================="
+
       - name: Run Tests
         shell: bash
         run: |
