@@ -99,7 +99,6 @@ jobs:
       - name: Run Tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          cd %GITHUB_WORKSPACE%
           python -m pytest tests/ -v
 
   build_sdist:
