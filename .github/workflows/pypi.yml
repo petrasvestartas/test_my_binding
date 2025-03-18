@@ -48,7 +48,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install cibuildwheel==2.23.1
-
       - name: Clean build artifacts
         shell: bash
         run: rm -rf build dist wheelhouse *.egg-info
@@ -84,22 +83,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest
-
       - name: Run Tests
         shell: bash
-        run: |
+run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "Running tests on Windows"
+            # For Windows, use the path in D: drive
             pwsh -Command "
-              cd D:\a\test_my_binding\test_my_binding
-              if (Test-Path 'tests') {
+              # Define the path for Windows
+              $workingDir = 'D:\a\test_my_binding\test_my_binding'
+              if (Test-Path '$workingDir\tests') {
                 Write-Host 'Tests directory found, proceeding with tests...'
-                python -m pytest tests/ -v
+                python -m pytest '$workingDir\tests' -v
               } else {
                 Write-Host 'No tests directory found! Exiting...'
                 exit 1
               }
             "
-          else
+          elif [[ "$RUNNER_OS" == "macOS" || "$RUNNER_OS" == "Linux" ]]; then
+            echo "Running tests on macOS/Ubuntu"
+            # For macOS and Ubuntu, adjust the path accordingly
             if [ -d "tests" ]; then
               echo "Tests directory found, proceeding with tests..."
               python -m pytest tests/ -v
@@ -108,7 +111,6 @@ jobs:
               exit 1
             fi
           fi
-
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
@@ -126,7 +128,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build
-
       - name: Build SDist
         run: python -m build --sdist
 
@@ -160,7 +161,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install twine
-
       - name: List files before upload
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -168,7 +168,6 @@ jobs:
           else
             ls -lhR
           fi
-
       - name: Publish to PyPI
         run: python -m twine upload dist/*
 
