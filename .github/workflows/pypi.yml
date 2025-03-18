@@ -42,7 +42,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp39-*"
+          CIBW_BUILD: "cp311-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
@@ -80,7 +80,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Download built wheels
         uses: actions/download-artifact@v4
@@ -149,4 +149,4 @@ jobs:
         run: python -m twine upload dist/*
 
       - name: Publish missing macOS x86_64 wheel (if needed)
-        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
+        run: python -m twine upload dist/*.cp311-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
