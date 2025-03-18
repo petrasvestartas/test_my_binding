@@ -97,7 +97,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          python -c "import test_my_binding; print(test_my_binding.__file__)
+          python -c "import test_my_binding; print(test_my_binding.__file__)"
           python -m pytest tests/ -v
 
   build_sdist:
