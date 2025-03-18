@@ -14,3 +14,4 @@ ruff
 sphinx_compas2_theme
 twine
 wheel
+cibuildwheel==2.23.1

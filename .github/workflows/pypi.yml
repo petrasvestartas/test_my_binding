@@ -53,6 +53,17 @@ jobs:
         shell: bash
         run: rm -rf build dist wheelhouse *.egg-info
 
+      - name: List directory contents
+        run: |
+          echo "Listing current directory contents..."
+          ls -lh || dir
+
+      - name: Check for tests
+        run: |
+          if [ ! -d "tests" ]; then echo "No tests directory found!"; exit 1; fi
+          echo "Tests directory found, proceeding with tests..."
+          pip install pytest
+
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
@@ -61,9 +72,11 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
           CIBW_TEST_COMMAND: |
             pip install --force-reinstall {wheel}
+            echo "Running tests..."
             if [ -d "tests" ]; then python -m pytest tests/ -v; else echo "No tests found, skipping."; fi
           CIBW_TEST_COMMAND_WINDOWS: |
             pip install --force-reinstall {wheel}
+            echo "Running tests..."
             if (Test-Path "tests") { python -m pytest tests/ -v } else { Write-Host "No tests found, skipping." }
         run: python -m cibuildwheel --output-dir wheelhouse .
 
