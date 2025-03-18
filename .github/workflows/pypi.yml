@@ -64,12 +64,12 @@ jobs:
 
       - name: Check for tests
         run: |
-          if (Test-Path "tests") {
+          if [ -d "tests" ]; then
             echo "Tests directory found, proceeding with tests..."
-          } else {
+          else
             echo "No tests directory found!"
             exit 1
-          }
+          fi
           pip install pytest
 
       - name: Build wheels
