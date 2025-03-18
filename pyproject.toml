@@ -77,7 +77,7 @@ skip = ["*_i686", "*-musllinux_*", "*-win32", "*-win_arm64"]
 macos.environment.MACOSX_DEPLOYMENT_TARGET="10.13"
 
 [tool.bumpversion]
-current_version = "1.0.51"
+current_version = "1.0.53"
 message = "Bump version to {new_version}"
 commit = true
 tag = true
