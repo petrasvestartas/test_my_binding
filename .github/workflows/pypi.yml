@@ -51,6 +51,8 @@ jobs:
           path: wheelhouse/*.whl
 
   run_tests:
+    name: Run tests on built wheels
+    needs: build_wheels
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -63,8 +65,17 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: pip install . pytest
+      - name: Download built wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: wheelhouse
+          merge-multiple: true
+
+      - name: Install wheel and dependencies
+        run: |
+          pip install pytest
+          pip install wheelhouse/*.whl
 
       - name: Run Tests
         run: python -m pytest tests/ -v
@@ -86,6 +97,7 @@ jobs:
           path: dist/*.tar.gz
 
   publish:
+    name: Publish package to PyPI
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     environment:
@@ -108,6 +120,7 @@ jobs:
 
       - name: Install Twine
         run: pip install twine
+
       - name: List files before upload
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -115,6 +128,7 @@ jobs:
           else
             ls -lhR
           fi
+
       - name: Publish to PyPI
         run: python -m twine upload dist/*
 
