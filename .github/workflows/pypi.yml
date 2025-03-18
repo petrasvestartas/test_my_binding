@@ -92,10 +92,13 @@ jobs:
         run: |
           pip install --find-links=wheelhouse test_my_binding
           pip install pytest
+          python -c "import test_my_binding; print(test_my_binding.__file__)"
           pip list
 
       - name: Run Tests
-        run: python -m pytest tests/ -v
+        run: |
+          python -c "import test_my_binding; print(test_my_binding.__file__)
+          python -m pytest tests/ -v
 
   build_sdist:
     name: Build source distribution
