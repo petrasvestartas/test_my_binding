@@ -63,12 +63,12 @@ jobs:
             ls -lh || dir
           fi
 
-      - name: Check for tests
-        shell: bash
+      - name: Check for Tests and Run
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             if pwsh -Command "Test-Path tests"; then
               echo "Tests directory found, proceeding with tests..."
+              python -m pytest tests/ -v
             else
               echo "No tests directory found!"
               exit 1
@@ -76,26 +76,10 @@ jobs:
           else
             if [ -d "tests" ]; then
               echo "Tests directory found, proceeding with tests..."
+              python -m pytest tests/ -v
             else
               echo "No tests directory found!"
               exit 1
-            fi
-          fi
-          pip install pytest
-
-      - name: Run Tests
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            if (Test-Path "tests") {
-              python -m pytest tests/ -v
-            } else {
-              echo "No tests found, skipping."
-            }
-          else
-            if [ -d "tests" ]; then
-              python -m pytest tests/ -v
-            else
-              echo "No tests found, skipping."
             fi
           fi
 
