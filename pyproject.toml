@@ -81,9 +81,6 @@ build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
 skip = ["*-manylinux_i686", "*-musllinux_*"]  
 
-[tool.cibuildwheel.windows]
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
 [tool.bumpversion]
 current_version = "1.0.51"
 message = "Bump version to {new_version}"

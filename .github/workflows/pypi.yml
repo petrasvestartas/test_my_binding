@@ -17,22 +17,18 @@ jobs:
           - os: ubuntu-latest
             platform: manylinux
             arch: x86_64
-            repair_tool: auditwheel
 
           - os: macos-latest
             platform: macOS
             arch: x86_64
-            repair_tool: delocate
 
           - os: macos-latest
             platform: macOS
             arch: arm64
-            repair_tool: delocate
 
           - os: windows-latest
             platform: Windows
             arch: x86_64
-            repair_tool: delvewheel
 
     steps:
       - uses: actions/checkout@v4
