@@ -91,11 +91,11 @@ jobs:
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pwsh -Command "
               cd D:\a\test_my_binding\test_my_binding
-              if (Test-Path tests) {
+              if (Test-Path 'tests') {
                 Write-Host 'Tests directory found, proceeding with tests...'
                 python -m pytest tests/ -v
               } else {
-                Write-Host 'No tests directory found!'
+                Write-Host 'No tests directory found! Exiting...'
                 exit 1
               }
             "
@@ -104,7 +104,7 @@ jobs:
               echo "Tests directory found, proceeding with tests..."
               python -m pytest tests/ -v
             else
-              echo "No tests directory found!"
+              echo "No tests directory found! Exiting..."
               exit 1
             fi
           fi
