@@ -92,6 +92,7 @@ jobs:
         run: |
           pip install --find-links=wheelhouse test_my_binding
           pip install pytest
+          pip list
 
       - name: Verify installation
         run: python -c "import test_my_binding.test_my_binding_ext"
