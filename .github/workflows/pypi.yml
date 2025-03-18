@@ -1,4 +1,4 @@
-name: pypi
+name: pypi 
 
 on:
   workflow_dispatch:
@@ -58,14 +58,16 @@ jobs:
         run: |
           echo "Listing current directory contents..."
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pwsh -Command "Get-ChildItem || dir"
+            pwsh -Command "Get-ChildItem -Path . -Recurse -Force"
           else
-            ls -lh || dir
+            ls -lhR
           fi
 
       - name: Check for Tests and Run
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
+          pip install pytest  # Ensure pytest is installed
+          
+          if [ "$RUNNER_OS" == "Windows" ]; then
             if pwsh -Command "Test-Path tests"; then
               echo "Tests directory found, proceeding with tests..."
               python -m pytest tests/ -v
