@@ -2,9 +2,11 @@ name: pypi
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main  # Temporarily allowing main branch pushes
+      - '*ci*'
 
 jobs:
   build_wheels:
@@ -35,24 +37,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
       - name: Install cibuildwheel
-        run: pip install cibuildwheel==2.23.1
-      - name: Clean build artifacts
-        shell: bash
-        run: rm -rf build dist wheelhouse *.egg-info
+        run: pipx install cibuildwheel==2.23.1
 
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
-          CIBW_SKIP: "*-musllinux_* *-win32 *_i686 *-win_arm64"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.13
-        run: python -m cibuildwheel --output-dir wheelhouse .
+        run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
@@ -60,7 +51,6 @@ jobs:
           path: wheelhouse/*.whl
 
   run_tests:
-    needs: build_wheels
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -74,32 +64,10 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install . pytest
 
-      - name: Print current directory contents (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          echo "==================== Current Directory Contents ===================="
-          pwd
-          ls -al
-          echo "==================================================================="
-
-      - name: Print current directory contents (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "==================== Current Directory Contents ===================="
-          echo "Full Path: %cd%"
-          dir
-          echo "==================================================================="
-
-      - name: Run Tests (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Run Tests
         run: python -m pytest tests/ -v
-
-      - name: Run Tests (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          python -m pytest tests/ -v
 
   build_sdist:
     name: Build source distribution
@@ -109,15 +77,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install build
       - name: Build SDist
-        run: python -m build --sdist
+        run: pipx run build --sdist
 
       - uses: actions/upload-artifact@v4
         with:
