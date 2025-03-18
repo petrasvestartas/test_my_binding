@@ -33,3 +33,8 @@ Go to PyPI and add a Trusted Publisher:
     - Repository name: test_my_binding
     - Workflow name: pypi.yml
     - Environment: pypi
+
+## Run cibuildwheel locally
+
+pip install cibuildwheel==2.23.1
+python -m cibuildwheel --output-dir wheelhouse .
