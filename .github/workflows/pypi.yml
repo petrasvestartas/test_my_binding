@@ -83,6 +83,22 @@ jobs:
           fi
           pip install pytest
 
+      - name: Run Tests
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            if (Test-Path "tests") {
+              python -m pytest tests/ -v
+            } else {
+              echo "No tests found, skipping."
+            }
+          else
+            if [ -d "tests" ]; then
+              python -m pytest tests/ -v
+            else
+              echo "No tests found, skipping."
+            fi
+          fi
+
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
