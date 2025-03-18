@@ -70,22 +70,19 @@ CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 [tool.cibuildwheel]
 build-verbosity = 3
 build = ["cp39-manylinux_x86_64", "cp39-win_amd64"]  # Build for Python 3.9 manylinux x86_64 and Windows x86_64
-test-command = "pip install numpy compas pytest build && pip install {wheel} && cd {project} && python -m pytest tests/"
-
+test-command = """pip install numpy compas pytest build && pip install {wheel} && 
+                  cd {project} && 
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      cd $env:GITHUB_WORKSPACE && python -m pytest tests/
+                  else
+                      python -m pytest tests/
+                  fi"""
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
 skip = ["*-manylinux_i686", "*-musllinux_*"]  
 
-[tool.cibuildwheel.linux]
-before-build = [
-    "rm -rf /project/build", 
-    "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*", 
-    "sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*",
-    "yum install -y epel-release",  
-    "yum install -y openblas-devel" 
-]
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-environment.PATH = "/opt/rh/devtoolset-9/root/usr/bin:$PATH" 
+[tool.cibuildwheel.windows]
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [tool.bumpversion]
 current_version = "1.0.51"
