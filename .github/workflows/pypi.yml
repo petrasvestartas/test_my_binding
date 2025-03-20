@@ -9,8 +9,8 @@ on:
       - '*ci*'
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
+  build_wheels_3_9:
+    name: Build wheels for Python 3.9 on ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -42,12 +42,53 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp311-*"
+          CIBW_BUILD: "cp39-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
+          name: wheels-python39-${{ matrix.platform }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+
+  build_wheels_3_10:
+    name: Build wheels for Python 3.10 on ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: manylinux
+            arch: x86_64
+
+          - os: macos-latest
+            platform: macOS
+            arch: x86_64
+
+          - os: macos-latest
+            platform: macOS
+            arch: arm64
+
+          - os: windows-latest
+            platform: Windows
+            arch: x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install cibuildwheel
+        run: pipx install cibuildwheel==2.23.1
+
+      - name: Build wheels
+        env:
+          CIBW_BUILD: "cp310-*"
+        run: cibuildwheel --output-dir wheelhouse .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-python310-${{ matrix.platform }}-${{ matrix.arch }}
           path: wheelhouse/*.whl
 
   build_sdist:
@@ -68,7 +109,7 @@ jobs:
 
   publish:
     name: Publish package to PyPI
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels_3_9, build_wheels_3_10, build_sdist]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -79,7 +120,12 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
+          name: wheels-python39-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-python310-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist
 
       - uses: actions/download-artifact@v4
@@ -92,6 +138,3 @@ jobs:
 
       - name: Publish to PyPI
         run: python -m twine upload dist/*
-
-      - name: Publish missing macOS x86_64 wheel (if needed)
-        run: python -m twine upload dist/*.cp311-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
