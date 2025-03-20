@@ -133,14 +133,14 @@ jobs:
           name: sdist
           path: dist
 
-      - name: Move all wheels to dist/
-        run: find dist -type f -name "*.whl" -exec mv {} dist/ \;
+      - name: Flatten dist directory
+        run: mv dist/**/**/*.whl dist/ || true
 
-      - name: List files to upload
+      - name: List final contents of dist
         run: ls -lh dist
 
       - name: Install Twine
         run: pip install twine
 
       - name: Publish to PyPI
-        run: python -m twine upload dist/*.whl dist/*.tar.gz || echo "Some files may have already been uploaded."
+        run: python -m twine upload dist/* || echo "Some files may have already been uploaded."
