@@ -108,42 +108,42 @@ jobs:
           path: dist/*.tar.gz
 
   publish:
-    name: Publish package to PyPI
-    needs: [build_wheels_3_9, build_wheels_3_10, build_sdist]
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/project/test_my_binding
-    permissions:
-      id-token: write
+      name: Publish package to PyPI
+      needs: [build_wheels_3_9, build_wheels_3_10, build_sdist]
+      runs-on: ubuntu-latest
+      environment:
+        name: pypi
+        url: https://pypi.org/project/test_my_binding
+      permissions:
+        id-token: write
 
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-python39-*
-          path: dist
+      steps:
+        - uses: actions/download-artifact@v4
+          with:
+            pattern: wheels-python39-*
+            path: dist
 
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-python310-*
-          path: dist
+        - uses: actions/download-artifact@v4
+          with:
+            pattern: wheels-python310-*
+            path: dist
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: sdist
-          path: dist
+        - uses: actions/download-artifact@v4
+          with:
+            name: sdist
+            path: dist
 
-      - name: Move all wheels to dist/
-        run: find dist -type f -name "*.whl" -exec mv {} dist/ \;
+        - name: Move all wheels to dist/
+          run: find dist -type f -name "*.whl" -exec mv {} dist/ \;
 
-      - name: List downloaded files
-        run: ls -lh dist
+        - name: List downloaded files
+          run: ls -lh dist
 
-      - name: Install Twine
-        run: pip install twine
+        - name: Install Twine
+          run: pip install twine
 
-      - name: Publish to PyPI
-        run: python -m twine upload dist/* || echo "Some files may have already been uploaded."
+        - name: Publish to PyPI
+          run: python -m twine upload dist/*.whl dist/*.tar.gz || echo "Some files may have already been uploaded."
 
-      - name: Publish missing macOS x86_64 wheel (if needed)
-        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl dist/*.cp310-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
+        - name: Publish missing macOS x86_64 wheel (if needed)
+          run: python -m twine upload dist/*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
