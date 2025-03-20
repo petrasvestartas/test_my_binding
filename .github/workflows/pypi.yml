@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels for Python 3.9 & 3.10 on ${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -42,7 +42,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp39-* cp310-*"
+          CIBW_BUILD: "cp311-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
@@ -79,7 +79,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
+          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist
 
       - uses: actions/download-artifact@v4
@@ -91,4 +91,7 @@ jobs:
         run: pip install twine
 
       - name: Publish to PyPI
-        run: python -m twine upload dist/* || echo "Some files may have already been uploaded."
+        run: python -m twine upload dist/*
+
+      - name: Publish missing macOS x86_64 wheel (if needed)
+        run: python -m twine upload dist/*.cp311-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
