@@ -16,21 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   platform: manylinux
-          #   arch: x86_64
+          - os: ubuntu-latest
+            platform: manylinux
 
           - os: macos-latest
             platform: macOS
-            arch: x86_64
 
-          # - os: macos-latest
-          #   platform: macOS
-          #   arch: arm64
-
-          # - os: windows-latest
-          #   platform: Windows
-          #   arch: x86_64
+          - os: windows-latest
+            platform: Windows
 
     steps:
       - uses: actions/checkout@v4
