@@ -36,5 +36,14 @@ Go to PyPI and add a Trusted Publisher:
 
 ## Run cibuildwheel locally
 
+sudo apt-get update
+sudo apt-get install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+wget https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -O ~/.cache/cibuildwheel/nuget.exe
+chmod +x ~/.cache/cibuildwheel/nuget.exe
+export PATH=$PATH:~/.cache/cibuildwheel
+
 pip install cibuildwheel==2.23.1
-python -m cibuildwheel --output-dir wheelhouse .
+python -m cibuildwheel --platform linux --output-dir wheelhouse .
+python -m cibuildwheel --platform windows --output-dir wheelhouse .
