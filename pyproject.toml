@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.60"
+version = "1.0.61"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
 requires-python = ">=3.9"
