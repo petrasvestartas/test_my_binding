@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.64"
+version = "1.0.65"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -73,8 +73,9 @@ test-requires = ["numpy", "compas", "pytest", "build"]
 test-command = "pytest {project}/tests"
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
-skip = ["*_i686", "*-musllinux_*", "*-win32", "*-win_arm64"]
+skip = ["*_i686", "*-musllinux_*", "*-win32"]
 macos.environment.MACOSX_DEPLOYMENT_TARGET="10.13"
+macos.archs = ["x86_64", "arm64"]
 
 [tool.bumpversion]
 current_version = "1.0.51"
