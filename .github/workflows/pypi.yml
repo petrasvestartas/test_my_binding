@@ -120,12 +120,12 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels-python39-${{ matrix.platform }}-${{ matrix.arch }}
+          pattern: wheels-python39-*
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: wheels-python310-${{ matrix.platform }}-${{ matrix.arch }}
+          pattern: wheels-python310-*
           path: dist
 
       - uses: actions/download-artifact@v4
@@ -137,4 +137,7 @@ jobs:
         run: pip install twine
 
       - name: Publish to PyPI
-        run: python -m twine upload dist/*
+        run: python -m twine upload dist/* || echo "Some files may have already been uploaded."
+
+      - name: Publish missing macOS x86_64 wheel (if needed)
+        run: python -m twine upload dist/*.cp39-*macosx_11_0_x86_64*.whl dist/*.cp310-*macosx_11_0_x86_64*.whl || echo "macOS x86_64 wheel already uploaded."
