@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.74"
+version = "1.0.75"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -60,7 +60,7 @@ doctest_optionflags = [
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 build-dir = "build/{wheel_tag}"
-wheel.py-api = "cp39"
+# wheel.py-api = "cp39"
 cmake.version = ">=3.15"
 cmake.build-type = "Release"
 
@@ -68,7 +68,7 @@ cmake.build-type = "Release"
 CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 
 [tool.cibuildwheel]
-build = "cp39-*, cp310-*"
+build = ["cp38-*", "cp39-*", "cp31?-*"]
 build-verbosity = 3
 test-requires = ["numpy", "compas", "pytest", "build"]
 test-command = "pip install numpy compas && pip list && pytest {project}/tests"
@@ -79,7 +79,7 @@ macos.environment.MACOSX_DEPLOYMENT_TARGET="11.00"
 macos.archs = ["x86_64", "arm64"]
 
 [tool.bumpversion]
-current_version = "1.0.74"
+current_version = "1.0.75"
 message = "Bump version to {new_version}"
 commit = true
 tag = true

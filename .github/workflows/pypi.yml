@@ -11,9 +11,9 @@ on:
     #   - main  
     #   - '*ci*'
 
-permissions: write-all
 
 jobs:
+  
   build_wheels:
     name: Build wheels on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
