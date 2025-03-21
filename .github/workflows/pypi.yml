@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches:
-      - main  # Temporarily allowing main branch pushes
-      - '*ci*'
+    tags:
+      - "v*"
+    # Temporarily allowing main branch pushes
+    # branches:
+    #   - main  
+    #   - '*ci*'
+
+permissions: write-all
 
 jobs:
   build_wheels:
