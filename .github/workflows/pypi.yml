@@ -34,8 +34,6 @@ jobs:
         run: pipx install cibuildwheel==2.23.1
 
       - name: Build wheels
-        env:
-            CIBW_BUILD: "cp38-* cp39-* cp31?-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
