@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build wheels on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
