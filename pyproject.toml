@@ -7,7 +7,7 @@ name = "test_my_binding"
 version = "1.0.67"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = "==3.9"
 authors = [
     { name = "tom van mele", email = "tom.v.mele@gmail.com" },
     { name = "Petras Vestartas", email = "petrasvestartas@gmail.com" },
@@ -70,15 +70,15 @@ CMAKE_POLICY_DEFAULT_CMP0135 = "NEW"
 [tool.cibuildwheel]
 build-verbosity = 3
 test-requires = ["numpy", "compas", "pytest", "build"]
-test-command = "pytest {project}/tests"
+test-command = "pip install numpy compas && pip list && pytest {project}/tests"
 build-frontend = "pip"
 manylinux-x86_64-image = "manylinux2014"
 skip = ["*_i686", "*-musllinux_*", "*-win32"]
 macos.environment.MACOSX_DEPLOYMENT_TARGET="10.13"
 macos.archs = ["x86_64", "arm64"]
 
-[[tool.cibuildwheel.overrides]]
-select = "cp3{9,10}-*"
+# [[tool.cibuildwheel.overrides]]
+# select = "cp3{9,10}-*"
 
 [tool.bumpversion]
 current_version = "1.0.51"
