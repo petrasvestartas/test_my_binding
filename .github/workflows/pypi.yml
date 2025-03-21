@@ -4,16 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    tags:
-      - "v*"
-    # Temporarily allowing main branch pushes
-    # branches:
-    #   - main  
-    #   - '*ci*'
-
+    branches:
+      - main  # Temporarily allowing main branch pushes
+      - '*ci*'
 
 jobs:
-  
   build_wheels:
     name: Build wheels on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -39,27 +34,33 @@ jobs:
         run: pipx install cibuildwheel==2.23.1
 
       - name: Build wheels
+        env:
+            CIBW_BUILD: "cp38-* cp39-* cp31?-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
           path: wheelhouse/*.whl
 
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+  # run_tests:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest, macos-latest, windows-latest]
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.12'
+
+  #     - name: Install dependencies
+  #       run: pip install . pytest
+
+  #     - name: Run Tests
+  #       run: python -m pytest tests/ -v
 
   build_sdist:
     name: Build source distribution
