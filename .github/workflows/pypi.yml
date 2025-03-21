@@ -34,13 +34,11 @@ jobs:
         run: pipx install cibuildwheel==2.23.1
 
       - name: Build wheels
-        env:
-            CIBW_BUILD: "cp39-*"
         run: cibuildwheel --output-dir wheelhouse .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
+          name: wheels-${{ matrix.platform }}
           path: wheelhouse/*.whl
 
   # run_tests:
