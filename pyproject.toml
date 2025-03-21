@@ -15,7 +15,6 @@ authors = [
 classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: Implementation :: CPython",
     "Development Status :: 4 - Beta",
 ]
@@ -61,7 +60,7 @@ doctest_optionflags = [
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 build-dir = "build/{wheel_tag}"
-wheel.py-api = "cp3{9,10}" 
+wheel.py-api = "cp39"
 cmake.version = ">=3.15"
 cmake.build-type = "Release"
 
@@ -78,7 +77,7 @@ skip = ["*_i686", "*-musllinux_*", "*-win32"]
 macos.environment.MACOSX_DEPLOYMENT_TARGET="10.13"
 macos.archs = ["x86_64", "arm64"]
 
-[[tool.cibuildwheel.overrides]] 
+[[tool.cibuildwheel.overrides]]
 select = "cp3{9,10}-*"
 
 [tool.bumpversion]
