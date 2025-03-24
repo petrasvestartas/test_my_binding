@@ -88,17 +88,8 @@ jobs:
           name: sdist
           path: dist
 
-      - name: Install Twine
-        run: pip install twine
       - name: List files before upload
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pwsh -Command "Get-ChildItem -Path . -Recurse -Force"
-          else
-            ls -lhR
-          fi
+        run: ls -lhR dist
+
       - name: Publish to PyPI
-        run: python -m twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
