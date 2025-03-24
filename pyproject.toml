@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "test_my_binding"
-version = "1.0.83"
+version = "1.0.84"
 description = "CGAL wrapper for COMPAS."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -79,7 +79,7 @@ macos.environment.MACOSX_DEPLOYMENT_TARGET="11.00"
 macos.archs = ["x86_64", "arm64"]
 
 [tool.bumpversion]
-current_version = "1.0.83"
+current_version = "1.0.84"
 message = "Bump version to {new_version}"
 commit = true
 tag = true
