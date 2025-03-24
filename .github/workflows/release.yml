@@ -31,9 +31,9 @@ jobs:
           - os: ubuntu-latest
             platform: manylinux
           - os: macos-latest
-            platform: macOS
+            platform: mac
           - os: windows-latest
-            platform: Windows
+            platform: windows
 
     steps:
       - uses: actions/checkout@v4
