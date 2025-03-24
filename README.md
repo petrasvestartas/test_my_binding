@@ -46,4 +46,5 @@ export PATH=$PATH:~/.cache/cibuildwheel
 
 pip install cibuildwheel==2.23.1
 python -m cibuildwheel --platform linux --output-dir wheelhouse .
+python -m cibuildwheel --platform macos --output-dir wheelhouse . --container
 python -m cibuildwheel --platform windows --output-dir wheelhouse .
